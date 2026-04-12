@@ -1,49 +1,582 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EARNX</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --panel: #f8f8f8;
+      --panel-2: #f3f3f3;
+      --text: #111111;
+      --muted: #666666;
+      --border: #e5e5e5;
+      --accent: #00c853;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body.dark {
+      --bg: #000000;
+      --panel: #0b0b0b;
+      --panel-2: #111111;
+      --text: #ffffff;
+      --muted: #aaaaaa;
+      --border: #222222;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      background: var(--bg);
+    }
+
+    .logo {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      margin-bottom: 8px;
+    }
+
+    .logo .x {
+      color: var(--accent);
+    }
+
+    .tagline {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .nav-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .nav-btn.active {
+      background: var(--panel);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .mode-btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px 14px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 6px 0 0 0;
+    }
+
+    .search {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--accent);
+      font-weight: 700;
+      min-width: 180px;
+      text-align: center;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      background: var(--panel);
+      margin-bottom: 18px;
+    }
+
+    .hero-title {
+      margin-top: 0;
+      font-size: 30px;
+      margin-bottom: 8px;
+    }
+
+    .hero-title .x {
+      color: var(--accent);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      background: var(--panel-2);
+    }
+
+    .mini-card h4 {
+      margin: 0 0 8px 0;
+      color: var(--accent);
+      font-size: 22px;
+    }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .post-name {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .post-user {
+      margin: 4px 0 0 0;
+      color: var(--muted);
+    }
+
+    .post-caption {
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+
+    .media {
+      margin-top: 16px;
+      height: 220px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, var(--panel-2) 0%, var(--panel) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .post-stats {
+      display: flex;
+      gap: 18px;
+      margin-top: 14px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+
+    .green {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .list-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      background: var(--panel-2);
+      margin-top: 12px;
+    }
+
+    .profile-cover {
+      height: 180px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      margin-bottom: 20px;
+    }
+
+    .profile-head {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .profile-avatar {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      border: none;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .search {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
-<body style="background:white; color:black; font-family:Arial; text-align:center; padding:50px;">
+<body>
+  <div id="app"></div>
 
-  <h1 style="font-size:40px;">
-    EARN<span style="color:#00C853;">X</span>
-  </h1>
+  <script>
+    const state = {
+      page: "home",
+      dark: false
+    };
 
-  <p>Tu plataforma de monetización 🚀</p>
+    function render() {
+      document.body.className = state.dark ? "dark" : "";
 
-  <button style="
-    padding:12px 20px;
-    border:none;
-    background:#00C853;
-    color:white;
-    border-radius:8px;
-    cursor:pointer;
-  ">
-    Empezar
-  </button>
+      document.getElementById("app").innerHTML = `
+        <div class="app">
+          <aside class="sidebar">
+            <div class="logo">EARN<span class="x">X</span></div>
+            <div class="tagline">Build. Grow. Earn.</div>
 
+            ${navBtn("🏠 Home", "home")}
+            ${navBtn("🧭 Discover", "discover")}
+            ${navBtn("💬 Messages", "messages")}
+            ${navBtn("👤 Profile", "profile")}
+            ${navBtn("💰 Wallet", "wallet")}
+            ${navBtn("⚙️ Settings", "settings")}
+
+            <button class="mode-btn" onclick="toggleDark()">
+              ${state.dark ? "☀️ Light Mode" : "🌙 Dark Mode"}
+            </button>
+          </aside>
+
+          <main class="main">
+            <div class="topbar">
+              <div>
+                <h2>${getTitle()}</h2>
+                <p class="sub">Welcome back, @user</p>
+              </div>
+              <div class="search">Search creators</div>
+            </div>
+
+            <div class="content">
+              ${renderPage()}
+            </div>
+          </main>
+        </div>
+      `;
+    }
+
+    function navBtn(label, page) {
+      return `
+        <button class="nav-btn ${state.page === page ? "active" : ""}" onclick="setPage('${page}')">
+          ${label}
+        </button>
+      `;
+    }
+
+    function getTitle() {
+      return {
+        home: "Dashboard",
+        discover: "Discover",
+        messages: "Messages",
+        profile: "Profile",
+        wallet: "Wallet",
+        settings: "Settings"
+      }[state.page];
+    }
+
+    function renderPage() {
+      if (state.page === "home") {
+        return `
+          <div class="card">
+            <h3 class="hero-title">Welcome to EARN<span class="x">X</span></h3>
+            <p class="sub">A premium creator platform focused on monetization, discovery, engagement, and growth.</p>
+
+            <div class="grid">
+              <div class="mini-card">
+                <h4>Wallet</h4>
+                <p class="sub">Track available, pending, and reserved earnings.</p>
+              </div>
+              <div class="mini-card">
+                <h4>Growth</h4>
+                <p class="sub">Measure performance, retention, and creator momentum.</p>
+              </div>
+              <div class="mini-card">
+                <h4>Discover</h4>
+                <p class="sub">Find premium creators and recommended content.</p>
+              </div>
+              <div class="mini-card">
+                <h4>Messages</h4>
+                <p class="sub">Build direct, high-value engagement with your audience.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="post-header">
+              <div class="avatar">S</div>
+              <div>
+                <h4 class="post-name">Sofia Vega</h4>
+                <p class="post-user">@sofia</p>
+              </div>
+            </div>
+
+            <p class="post-caption">Late night vibes ✨ Exclusive content dropping for premium members.</p>
+
+            <div class="media">Media Preview</div>
+
+            <div class="post-stats">
+              <span class="green">❤️ 128 likes</span>
+              <span>💬 12 comments</span>
+              <span class="green">Premium</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="post-header">
+              <div class="avatar">A</div>
+              <div>
+                <h4 class="post-name">Alex Rivera</h4>
+                <p class="post-user">@alex</p>
+              </div>
+            </div>
+
+            <p class="post-caption">New premium drop coming soon. High engagement week ahead.</p>
+
+            <div class="media">Content Preview</div>
+
+            <div class="post-stats">
+              <span class="green">❤️ 89 likes</span>
+              <span>💬 8 comments</span>
+              <span class="green">Trending</span>
+            </div>
+          </div>
+        `;
+      }
+
+      if (state.page === "discover") {
+        return `
+          <div class="card">
+            <h3 class="hero-title">Recommended Creators</h3>
+            <p class="sub">Explore profiles, premium content, and rising creators.</p>
+
+            <div class="grid">
+              <div class="mini-card">
+                <h4>Nova</h4>
+                <p class="sub">@nova</p>
+                <p class="sub">Lifestyle • Premium</p>
+              </div>
+              <div class="mini-card">
+                <h4>Luna</h4>
+                <p class="sub">@luna</p>
+                <p class="sub">Streaming • Exclusive</p>
+              </div>
+              <div class="mini-card">
+                <h4>Alpha</h4>
+                <p class="sub">@alpha</p>
+                <p class="sub">Fitness • Creator</p>
+              </div>
+              <div class="mini-card">
+                <h4>Sol</h4>
+                <p class="sub">@sol</p>
+                <p class="sub">Live • Community</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (state.page === "messages") {
+        return `
+          <div class="card">
+            <h3 class="hero-title">Inbox</h3>
+            <p class="sub">Start and manage premium conversations.</p>
+
+            <div class="list-item">@sofia — New message</div>
+            <div class="list-item">@alex — Subscription question</div>
+            <div class="list-item">@luna — Exclusive request</div>
+          </div>
+        `;
+      }
+
+      if (state.page === "profile") {
+        return `
+          <div class="card">
+            <div class="profile-cover"></div>
+
+            <div class="profile-head">
+              <div class="profile-avatar">U</div>
+              <div>
+                <h3 style="margin:0;">User Name</h3>
+                <p class="sub" style="margin:6px 0 0 0;">@username</p>
+              </div>
+            </div>
+
+            <p class="sub" style="margin-top:18px;">
+              Creator bio goes here. Premium content, discovery, and monetization.
+            </p>
+
+            <div class="btn-row">
+              <button class="btn-primary">Follow</button>
+              <button class="btn-secondary">Message</button>
+            </div>
+          </div>
+        `;
+      }
+
+      if (state.page === "wallet") {
+        return `
+          <div class="card">
+            <h3 class="hero-title">Wallet</h3>
+            <p class="sub">Earnings overview and payout visibility.</p>
+
+            <div class="grid">
+              <div class="mini-card">
+                <h4>$4,250</h4>
+                <p class="sub">Available</p>
+              </div>
+              <div class="mini-card">
+                <h4>$1,280</h4>
+                <p class="sub">Pending</p>
+              </div>
+              <div class="mini-card">
+                <h4>$320</h4>
+                <p class="sub">Reserved</p>
+              </div>
+              <div class="mini-card">
+                <h4>$12,940</h4>
+                <p class="sub">Paid Out</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="card">
+          <h3 class="hero-title">Settings</h3>
+          <p class="sub">Profile, security, notifications, and preferences.</p>
+
+          <div class="list-item">Profile Settings</div>
+          <div class="list-item">Account Settings</div>
+          <div class="list-item">Security Settings</div>
+        </div>
+      `;
+    }
+
+    function setPage(page) {
+      state.page = page;
+      render();
+    }
+
+    function toggleDark() {
+      state.dark = !state.dark;
+      render();
+    }
+
+    render();
+  </script>
 </body>
 </html>
-EARNX
-
-Pantallas:
-- Login
-- Home
-- Discover
-- Messages
-- Profile
-- Wallet
-- Settings
-
-Identidad:
-- Blanco default
-- Negro en texto
-- X verde
-- Dark mode opcional
-
-Objetivo:
-- monetización
-- discovery
-- engagement
-- creator platform premium
