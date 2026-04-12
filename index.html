@@ -712,3 +712,351 @@ TECHNICAL REQUIREMENTS:
 
 OUTPUT GOAL:
 Deliver a complete frontend experience of EARNX with all major screens working visually and navigationally, ready for backend integration later.
+Build the frontend for a real social creator platform called EarnX.
+
+IMPORTANT:
+This is NOT a fake “make money app”, NOT a demo-looking UI, and NOT an ad-reward app.
+EarnX is a real creator economy platform where content creators grow an audience, compete in public rankings, and monetize directly from fans and reach.
+The product must feel premium, modern, clean, social, and real.
+
+CORE PRODUCT VISION:
+EarnX is a social content platform where creators can:
+- create accounts
+- follow other creators
+- publish content
+- discover creators by country and globally
+- compete for visible ranking positions (#1, #2, #3, top 10)
+- build status as trending creators
+- monetize through fans and audience reach
+
+The frontend must reflect a serious platform, not an experiment.
+
+GENERAL UI RULES:
+- Mobile-first design
+- Premium, minimal, modern UI
+- Dark elegant interface with clean spacing and strong hierarchy
+- No fake demo banners
+- No placeholder “sample creators” presented as real
+- No “this is a demo” prompts
+- No gamified fake earning widgets
+- No ad-task visuals
+- Use realistic empty states instead of fake content
+- Bottom navigation must always be present on main authenticated screens
+- Everything should feel like a real social media app ready to scale
+
+APP STRUCTURE:
+The product should have these main screens and flows:
+
+1. AUTHENTICATION
+Create a proper authentication flow as the first experience.
+Include:
+- Login screen
+- Sign up screen
+- Forgot password screen
+- Optional social login buttons (Google / Apple style UI only if needed)
+- Username creation
+- Profile photo upload UI
+- Clean onboarding flow
+
+RULES:
+- The app should start with login / signup
+- No user should enter the platform without authenticating
+- No fake feed before login
+- The auth should feel premium and simple
+
+2. HOME FEED
+The Home screen must be the real main feed.
+This feed should show content from people the user follows.
+It must feel clean and real.
+
+Include:
+- top app bar with EarnX wordmark or clean logo text
+- feed of posts from followed creators
+- creator avatar, username, country if relevant
+- post content cards
+- engagement actions: like, comment, share, support
+- ranking badge if creator is trending or ambassador
+
+If the user follows nobody yet:
+show a strong elegant empty state like:
+“Follow creators to start building your feed”
+with a button leading to discover/search
+
+DO NOT:
+- add fake demo posts
+- add random prefilled influencer content pretending to be real
+- add tutorial popups that break immersion
+
+3. SEARCH / DISCOVER
+Create a powerful Search/Discover screen.
+This is one of the most important screens.
+
+The discover experience should allow users to find:
+- creators
+- trending creators
+- local creators by country
+- global creators
+- rankings
+- ambassador creators
+
+Include:
+- search bar at top
+- tabs or segmented controls for:
+  - Global
+  - Local
+  - Trending
+  - Ambassadors
+- creator cards and discover grid/list
+- trending sections by country and worldwide
+- clear visual treatment for ranking positions
+
+INTERNATIONAL DATA CONCEPT:
+This platform should visually support international discovery.
+Creators can trend:
+- in their country
+- regionally
+- globally
+
+So the UI must support:
+- Top creators in Puerto Rico
+- Top creators in different countries
+- Global trending creators
+- Country badges or location labels where helpful
+
+4. RANKING / TRENDING SYSTEM
+This is central to EarnX.
+
+The product must create ambition around ranking.
+Users should want to reach and maintain visible public positions.
+
+Build a visible ranking system where the public can see:
+- #1
+- #2
+- #3
+- Top 10
+
+Ranking can exist in:
+- country level
+- regional level
+- global level
+
+The ranking should be visually powerful and aspirational.
+For example:
+- #1 = crown / premium highlight
+- #2 = silver styling
+- #3 = bronze styling
+- Top 10 = sleek elite list treatment
+
+Ranking must be PUBLIC.
+Everyone can see who is trending.
+
+But earnings/private creator analytics must NOT be public.
+
+5. AMBASSADOR SYSTEM
+Trending creators in countries and globally can become EarnX Ambassadors.
+
+Create UI support for ambassador status:
+- Ambassador badge on profile
+- Ambassador badge in feed
+- Ambassador section in discover
+- Labels such as:
+  - EarnX Ambassador
+  - Global Ambassador
+  - Country Ambassador
+
+This should feel prestigious, not cheesy.
+
+The system should visually communicate:
+Top creators who are trending become the faces of the platform.
+
+6. PROFILE
+Build a strong creator profile page.
+
+Include:
+- profile photo
+- username
+- display name
+- bio
+- country
+- follow button
+- support button
+- ranking badge if applicable
+- ambassador badge if applicable
+- followers / following / posts counts
+- content grid or feed
+- pinned content area if useful
+- visible status if they are #1, #2, #3, Top 10, Ambassador, etc.
+
+This profile should feel like a blend of social status + creator monetization.
+
+7. CREATE / POST
+Include a content creation flow accessible from bottom navigation.
+
+Include UI for:
+- create post
+- upload image/video
+- write caption
+- tag category if needed
+- optional monetization/support toggle UI
+- submit/publish screen
+
+The create experience should be simple, premium, and creator-focused.
+
+8. MESSAGES
+Build a messages/inbox section.
+
+Include:
+- inbox list
+- recent conversations
+- chat screen
+- modern clean DM interface
+- avatars
+- timestamps
+- message bubbles
+
+This should feel like a real social platform messaging system.
+
+9. SETTINGS
+Include a settings screen accessible from profile or navigation structure.
+
+Include:
+- account settings
+- edit profile
+- privacy
+- notifications
+- security
+- payment / payout settings UI
+- creator analytics access entry point
+- support/help
+
+Important:
+Only the creator should access private data like:
+- earnings
+- payout details
+- detailed analytics
+- monetization performance
+
+This information must be private and never public.
+
+10. PRIVATE CREATOR DASHBOARD
+Inside the creator’s private area, include a protected dashboard UI.
+
+This section is only visible to the logged-in creator for their own account.
+
+Include:
+- earnings summary
+- support/tips summary
+- audience analytics
+- reach
+- engagement
+- ranking movement
+- trend performance
+- payout settings
+
+Do not expose this information publicly anywhere else.
+
+BOTTOM NAVIGATION
+The main authenticated app must have a fixed bottom navigation bar.
+
+Use exactly these core sections:
+- Home
+- Search
+- Create
+- Messages
+- Profile
+
+The bottom nav must be visible on the main app screens and feel polished.
+
+VISUAL LANGUAGE
+The UI should communicate:
+- ambition
+- status
+- growth
+- premium creator culture
+- modern global platform
+
+Avoid anything that feels:
+- cheap
+- spammy
+- fake
+- ad-heavy
+- template-like
+- childish
+
+EMPTY STATES
+Use elegant empty states throughout the product.
+Examples:
+- no follows yet
+- no messages yet
+- no posts yet
+- no ranking yet
+- no search results yet
+
+All empty states should feel intentional and premium.
+
+DATA / CONTENT BEHAVIOR
+Do not rely on fake preloaded “demo” data in the visible UI.
+Instead:
+- design realistic components
+- use clean loading states / skeletons
+- use empty states where needed
+- structure components so real backend data can plug in later
+
+RANKING PSYCHOLOGY
+The design should reinforce a public competitive system.
+Creators should feel motivated to maintain their ranking position.
+The public should be able to see who is winning.
+But financial details must remain private.
+
+This is about:
+- public status
+- ambition
+- momentum
+- visibility
+- creator competition
+
+TECHNICAL FRONTEND EXPECTATIONS
+Build the frontend with production-level organization.
+Use reusable components and a scalable file structure.
+
+Need:
+- responsive mobile-first layouts
+- reusable cards
+- reusable navigation
+- clean state-driven UI
+- component-based architecture
+- polished transitions where appropriate
+- realistic skeleton loading states
+
+DELIVERABLE
+Generate a complete front-end structure for this platform, including:
+- authentication screens
+- home feed
+- search/discover
+- ranking/trending UI
+- ambassador status UI
+- profile pages
+- create post flow
+- messages
+- settings
+- private creator dashboard
+- bottom navigation
+- empty states
+- loading states
+
+The result should look like a serious launch-ready social creator platform called EarnX.
+
+FINAL PRODUCT FEEL:
+Think of a blend of:
+- premium social media app
+- creator platform
+- public ranking system
+- international discovery network
+
+But make it original to EarnX.
+
+Again:
+No demo vibe.
+No fake earning app feel.
+No task/reward/ad-click identity.
+This must feel like the real future of a creator-driven social platform.
