@@ -579,484 +579,1820 @@
     render();
   </script>
 </body>     
-Build the complete frontend for EARNX, a premium creator platform.
-
-IMPORTANT:
-- Focus ONLY on frontend
-- Do NOT build backend logic yet
-- Use mock data for everything
-- The goal is to create the full visual product experience first
-
-PRODUCT VISION:
-EARNX is a creator platform focused on monetization, discovery, engagement, and premium content.
-It should feel like a hybrid of:
-- creator monetization platform
-- social content platform
-- premium fintech-inspired product
-
-DESIGN SYSTEM:
-- Default theme: white background
-- Black text
-- Green accent (#00C853)
-- The "X" in EARNX should always be green
-- All important symbols and action accents should use green
-- Add optional dark mode toggle
-- Keep the UI premium, clean, modern, and minimal
-- Avoid generic demo vibes
-
-FRONTEND GOALS:
-Build the full user-facing app experience with:
-- navigation
-- screens
-- layout
-- reusable UI
-- stateful screen switching
-- mock content
-
-SCREENS TO BUILD:
-1. Login
-2. Home / Feed
-3. Discover
-4. Messages
-5. Profile
-6. Wallet
-7. Settings
-
-FRONTEND REQUIREMENTS:
-
-1. LOGIN SCREEN
-- Clean premium login page
-- EARNX logo with green X
-- Email / username field
-- Password field
-- Sign in button
-- Sign up button
-- Friendly premium copy
-- After login, navigate to Home
-
-2. HOME / FEED
-- Creator feed with cards
-- Avatar
-- Creator name
-- @username
-- Caption
-- Media preview area
-- Engagement row (likes, comments, premium badge)
-- Clean scrollable layout
-
-3. DISCOVER
-- Grid of creators
-- Recommended creators
-- Trending creators
-- Categories / tags
-- Cards with:
-  - avatar
-  - display name
-  - @username
-  - short bio
-  - category
-  - followers
-  - call to action
-
-4. MESSAGES
-- Inbox layout
-- Conversations list
-- Active chat view
-- Message input area
-- Premium messaging feel
-
-5. PROFILE
-- Cover section
-- Avatar
-- Display name
-- @username
-- Bio
-- Follow button
-- Message button
-- Premium / subscribe action
-- Tabs for posts / media
-
-6. WALLET
-- Available balance
-- Pending balance
-- Reserved balance
-- Paid out
-- Recent activity cards
-
-7. SETTINGS
-- Profile settings
-- Security settings
-- Notification settings
-- Theme settings
-- Account preferences
-
-LAYOUT:
-- Left sidebar navigation
-- Topbar with page title and search
-- Main content area
-- Responsive layout
-
-UX REQUIREMENTS:
-- Light mode by default
-- Dark mode toggle
-- Smooth transitions where appropriate
-- Premium spacing and card layout
-- Feels serious, not playful
-- Feels like a real startup product
-
-TECHNICAL REQUIREMENTS:
-- Use clean HTML/CSS/JavaScript or React, depending on the environment
-- Use reusable components where possible
-- Use mock data only
-- Keep frontend modular and easy to connect to backend later
-
-OUTPUT GOAL:
-Deliver a complete frontend experience of EARNX with all major screens working visually and navigationally, ready for backend integration later.
-Build the frontend for a real social creator platform called EarnX.
-
-IMPORTANT:
-This is NOT a fake “make money app”, NOT a demo-looking UI, and NOT an ad-reward app.
-EarnX is a real creator economy platform where content creators grow an audience, compete in public rankings, and monetize directly from fans and reach.
-The product must feel premium, modern, clean, social, and real.
-
-CORE PRODUCT VISION:
-EarnX is a social content platform where creators can:
-- create accounts
-- follow other creators
-- publish content
-- discover creators by country and globally
-- compete for visible ranking positions (#1, #2, #3, top 10)
-- build status as trending creators
-- monetize through fans and audience reach
-
-The frontend must reflect a serious platform, not an experiment.
-
-GENERAL UI RULES:
-- Mobile-first design
-- Premium, minimal, modern UI
-- Dark elegant interface with clean spacing and strong hierarchy
-- No fake demo banners
-- No placeholder “sample creators” presented as real
-- No “this is a demo” prompts
-- No gamified fake earning widgets
-- No ad-task visuals
-- Use realistic empty states instead of fake content
-- Bottom navigation must always be present on main authenticated screens
-- Everything should feel like a real social media app ready to scale
-
-APP STRUCTURE:
-The product should have these main screens and flows:
-
-1. AUTHENTICATION
-Create a proper authentication flow as the first experience.
-Include:
-- Login screen
-- Sign up screen
-- Forgot password screen
-- Optional social login buttons (Google / Apple style UI only if needed)
-- Username creation
-- Profile photo upload UI
-- Clean onboarding flow
-
-RULES:
-- The app should start with login / signup
-- No user should enter the platform without authenticating
-- No fake feed before login
-- The auth should feel premium and simple
-
-2. HOME FEED
-The Home screen must be the real main feed.
-This feed should show content from people the user follows.
-It must feel clean and real.
-
-Include:
-- top app bar with EarnX wordmark or clean logo text
-- feed of posts from followed creators
-- creator avatar, username, country if relevant
-- post content cards
-- engagement actions: like, comment, share, support
-- ranking badge if creator is trending or ambassador
-
-If the user follows nobody yet:
-show a strong elegant empty state like:
-“Follow creators to start building your feed”
-with a button leading to discover/search
-
-DO NOT:
-- add fake demo posts
-- add random prefilled influencer content pretending to be real
-- add tutorial popups that break immersion
-
-3. SEARCH / DISCOVER
-Create a powerful Search/Discover screen.
-This is one of the most important screens.
-
-The discover experience should allow users to find:
-- creators
-- trending creators
-- local creators by country
-- global creators
-- rankings
-- ambassador creators
-
-Include:
-- search bar at top
-- tabs or segmented controls for:
-  - Global
-  - Local
-  - Trending
-  - Ambassadors
-- creator cards and discover grid/list
-- trending sections by country and worldwide
-- clear visual treatment for ranking positions
-
-INTERNATIONAL DATA CONCEPT:
-This platform should visually support international discovery.
-Creators can trend:
-- in their country
-- regionally
-- globally
-
-So the UI must support:
-- Top creators in Puerto Rico
-- Top creators in different countries
-- Global trending creators
-- Country badges or location labels where helpful
-
-4. RANKING / TRENDING SYSTEM
-This is central to EarnX.
-
-The product must create ambition around ranking.
-Users should want to reach and maintain visible public positions.
-
-Build a visible ranking system where the public can see:
-- #1
-- #2
-- #3
-- Top 10
-
-Ranking can exist in:
-- country level
-- regional level
-- global level
-
-The ranking should be visually powerful and aspirational.
-For example:
-- #1 = crown / premium highlight
-- #2 = silver styling
-- #3 = bronze styling
-- Top 10 = sleek elite list treatment
-
-Ranking must be PUBLIC.
-Everyone can see who is trending.
-
-But earnings/private creator analytics must NOT be public.
-
-5. AMBASSADOR SYSTEM
-Trending creators in countries and globally can become EarnX Ambassadors.
-
-Create UI support for ambassador status:
-- Ambassador badge on profile
-- Ambassador badge in feed
-- Ambassador section in discover
-- Labels such as:
-  - EarnX Ambassador
-  - Global Ambassador
-  - Country Ambassador
-
-This should feel prestigious, not cheesy.
-
-The system should visually communicate:
-Top creators who are trending become the faces of the platform.
-
-6. PROFILE
-Build a strong creator profile page.
-
-Include:
-- profile photo
-- username
-- display name
-- bio
-- country
-- follow button
-- support button
-- ranking badge if applicable
-- ambassador badge if applicable
-- followers / following / posts counts
-- content grid or feed
-- pinned content area if useful
-- visible status if they are #1, #2, #3, Top 10, Ambassador, etc.
-
-This profile should feel like a blend of social status + creator monetization.
-
-7. CREATE / POST
-Include a content creation flow accessible from bottom navigation.
-
-Include UI for:
-- create post
-- upload image/video
-- write caption
-- tag category if needed
-- optional monetization/support toggle UI
-- submit/publish screen
-
-The create experience should be simple, premium, and creator-focused.
-
-8. MESSAGES
-Build a messages/inbox section.
-
-Include:
-- inbox list
-- recent conversations
-- chat screen
-- modern clean DM interface
-- avatars
-- timestamps
-- message bubbles
-
-This should feel like a real social platform messaging system.
-
-9. SETTINGS
-Include a settings screen accessible from profile or navigation structure.
-
-Include:
-- account settings
-- edit profile
-- privacy
-- notifications
-- security
-- payment / payout settings UI
-- creator analytics access entry point
-- support/help
-
-Important:
-Only the creator should access private data like:
-- earnings
-- payout details
-- detailed analytics
-- monetization performance
-
-This information must be private and never public.
-
-10. PRIVATE CREATOR DASHBOARD
-Inside the creator’s private area, include a protected dashboard UI.
-
-This section is only visible to the logged-in creator for their own account.
-
-Include:
-- earnings summary
-- support/tips summary
-- audience analytics
-- reach
-- engagement
-- ranking movement
-- trend performance
-- payout settings
-
-Do not expose this information publicly anywhere else.
-
-BOTTOM NAVIGATION
-The main authenticated app must have a fixed bottom navigation bar.
-
-Use exactly these core sections:
-- Home
-- Search
-- Create
-- Messages
-- Profile
-
-The bottom nav must be visible on the main app screens and feel polished.
-
-VISUAL LANGUAGE
-The UI should communicate:
-- ambition
-- status
-- growth
-- premium creator culture
-- modern global platform
-
-Avoid anything that feels:
-- cheap
-- spammy
-- fake
-- ad-heavy
-- template-like
-- childish
-
-EMPTY STATES
-Use elegant empty states throughout the product.
-Examples:
-- no follows yet
-- no messages yet
-- no posts yet
-- no ranking yet
-- no search results yet
-
-All empty states should feel intentional and premium.
-
-DATA / CONTENT BEHAVIOR
-Do not rely on fake preloaded “demo” data in the visible UI.
-Instead:
-- design realistic components
-- use clean loading states / skeletons
-- use empty states where needed
-- structure components so real backend data can plug in later
-
-RANKING PSYCHOLOGY
-The design should reinforce a public competitive system.
-Creators should feel motivated to maintain their ranking position.
-The public should be able to see who is winning.
-But financial details must remain private.
-
-This is about:
-- public status
-- ambition
-- momentum
-- visibility
-- creator competition
-
-TECHNICAL FRONTEND EXPECTATIONS
-Build the frontend with production-level organization.
-Use reusable components and a scalable file structure.
-
-Need:
-- responsive mobile-first layouts
-- reusable cards
-- reusable navigation
-- clean state-driven UI
-- component-based architecture
-- polished transitions where appropriate
-- realistic skeleton loading states
-
-DELIVERABLE
-Generate a complete front-end structure for this platform, including:
-- authentication screens
-- home feed
-- search/discover
-- ranking/trending UI
-- ambassador status UI
-- profile pages
-- create post flow
-- messages
-- settings
-- private creator dashboard
-- bottom navigation
-- empty states
-- loading states
-
-The result should look like a serious launch-ready social creator platform called EarnX.
-
-FINAL PRODUCT FEEL:
-Think of a blend of:
-- premium social media app
-- creator platform
-- public ranking system
-- international discovery network
-
-But make it original to EarnX.
-
-Again:
-No demo vibe.
-No fake earning app feel.
-No task/reward/ad-click identity.
-This must feel like the real future of a creator-driven social platform.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EarnX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app"></div>
+  <script src="script.js"></script>
+</body>
+</html> :root {
+  --bg: #0b0d11;
+  --bg-2: #11151c;
+  --panel: #131924;
+  --panel-2: #171f2c;
+  --panel-3: #1d2635;
+  --text: #f4f7fb;
+  --muted: #99a3b3;
+  --line: rgba(255,255,255,0.08);
+  --soft-line: rgba(255,255,255,0.05);
+  --accent: #17d67c;
+  --accent-2: #0fb46a;
+  --danger: #ff5d73;
+  --warning: #ffcf5a;
+  --silver: #c7d1e0;
+  --bronze: #ba8a62;
+  --shadow: 0 18px 50px rgba(0,0,0,0.35);
+  --radius: 22px;
+  --radius-sm: 14px;
+  --max: 480px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at top, #111724 0%, var(--bg) 40%, #08090d 100%);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100%;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+#app {
+  width: 100%;
+  max-width: var(--max);
+  min-height: 100vh;
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 20%);
+}
+
+.shell {
+  min-height: 100vh;
+  padding-bottom: 98px;
+}
+
+.screen {
+  padding: 18px 16px 28px;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  padding: 28px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.brand-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1eff94, #0d7d4d);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #06130c;
+  box-shadow: 0 10px 30px rgba(23, 214, 124, 0.25);
+}
+
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.brand-subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 22px;
+}
+
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.auth-card {
+  padding: 18px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.card-subtitle {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.input, .textarea, .select {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  border: 1px solid var(--line);
+  outline: none;
+  padding: 14px 14px;
+  border-radius: 14px;
+  transition: 0.2s ease;
+}
+
+.input:focus, .textarea:focus, .select:focus {
+  border-color: rgba(23, 214, 124, 0.6);
+  box-shadow: 0 0 0 4px rgba(23, 214, 124, 0.09);
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.row > * {
+  flex: 1;
+}
+
+.btn {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  transition: transform .15s ease, opacity .2s ease, background .2s ease;
+}
+
+.btn:active {
+  transform: scale(0.99);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #07120c;
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.topbar h1 {
+  font-size: 1.1rem;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.topbar .muted {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+}
+
+.hero {
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.hero h2 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 18px 2px 12px;
+}
+
+.section-title h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+}
+
+.section-title span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.empty-state {
+  padding: 26px 18px;
+  text-align: center;
+  border-radius: var(--radius);
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.empty-state p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.feed-list,
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.post-card,
+.creator-card,
+.message-card,
+.setting-card,
+.stat-card,
+.rank-card {
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
+  border: 1px solid var(--line);
+}
+
+.post-head,
+.creator-head,
+.message-head,
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1f2a3b, #111723);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.avatar.large {
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
+  font-size: 1.2rem;
+}
+
+.name-block {
+  min-width: 0;
+}
+
+.name-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.name-line h4,
+.name-line h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.handle,
+.meta,
+.submeta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.post-content {
+  margin-top: 12px;
+  color: #ebeff6;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.post-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.action-chip,
+.badge,
+.rank-pill,
+.country-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.035);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.badge.ambassador {
+  background: rgba(23, 214, 124, 0.08);
+  border-color: rgba(23, 214, 124, 0.22);
+  color: #8bf0bb;
+}
+
+.badge.rank-1 {
+  background: rgba(255, 207, 90, 0.10);
+  color: #ffdb7f;
+  border-color: rgba(255, 207, 90, 0.22);
+}
+
+.badge.rank-2 {
+  background: rgba(199, 209, 224, 0.10);
+  color: var(--silver);
+}
+
+.badge.rank-3 {
+  background: rgba(186, 138, 98, 0.10);
+  color: var(--bronze);
+}
+
+.app-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+
+.app-tab {
+  flex: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.app-tab.active {
+  color: #07120c;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.searchbar {
+  margin-bottom: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rank-number {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+}
+
+.rank-number.gold { color: #ffdb7f; }
+.rank-number.silver { color: var(--silver); }
+.rank-number.bronze { color: var(--bronze); }
+
+.profile-card {
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.profile-meta {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.profile-stat {
+  padding: 12px;
+  border-radius: 16px;
+  text-align: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--soft-line);
+}
+
+.profile-stat strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.profile-bio {
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 1.15rem;
+  margin-bottom: 4px;
+}
+
+.stat-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: calc(var(--max) - 16px);
+  background: rgba(11, 13, 17, 0.82);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding: 8px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+}
+
+.nav-btn {
+  background: transparent;
+  color: var(--muted);
+  border-radius: 18px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  font-size: 0.72rem;
+}
+
+.nav-btn.active {
+  color: var(--text);
+  background: rgba(255,255,255,0.06);
+}
+
+.nav-emoji {
+  font-size: 1.05rem;
+}
+
+.hr {
+  height: 1px;
+  background: var(--soft-line);
+  margin: 14px 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.notice {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  margin-bottom: 14px;
+  border: 1px solid transparent;
+}
+
+.notice.success {
+  background: rgba(23,214,124,0.09);
+  color: #97f5c3;
+  border-color: rgba(23,214,124,0.18);
+}
+
+.notice.error {
+  background: rgba(255,93,115,0.09);
+  color: #ffc0c8;
+  border-color: rgba(255,93,115,0.16);
+}
+
+.small {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.center {
+  text-align: center;
+}
+
+@media (max-width: 360px) {
+  .grid-2,
+  .kpi-grid,
+  .profile-meta {
+    grid-template-columns: 1fr;
+  }
+}     const STORAGE_KEY = "earnx_app_v1";
+
+const countries = [
+  "Puerto Rico",
+  "United States",
+  "Mexico",
+  "Colombia",
+  "Argentina",
+  "Spain",
+  "Dominican Republic",
+  "Chile",
+  "Brazil",
+  "Global"
+];
+
+const initialState = {
+  sessionUserId: null,
+  ui: {
+    authView: "login",
+    appView: "home",
+    discoverTab: "global",
+    profileUserId: null,
+    notice: null
+  },
+  users: [],
+  posts: [],
+  follows: [],
+  messages: []
+};
+
+let state = loadState();
+
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return structuredClone(initialState);
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      ...structuredClone(initialState),
+      ...parsed,
+      ui: {
+        ...structuredClone(initialState).ui,
+        ...(parsed.ui || {})
+      }
+    };
+  } catch {
+    return structuredClone(initialState);
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function uid(prefix = "id") {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function setNotice(type, text) {
+  state.ui.notice = { type, text };
+  saveState();
+  render();
+  setTimeout(() => {
+    if (state.ui.notice?.text === text) {
+      state.ui.notice = null;
+      saveState();
+      render();
+    }
+  }, 2500);
+}
+
+function currentUser() {
+  return state.users.find(u => u.id === state.sessionUserId) || null;
+}
+
+function getInitials(name = "") {
+  return name
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join("") || "EX";
+}
+
+function userPosts(userId) {
+  return state.posts.filter(p => p.userId === userId);
+}
+
+function followerCount(userId) {
+  return state.follows.filter(f => f.followingId === userId).length;
+}
+
+function followingCount(userId) {
+  return state.follows.filter(f => f.followerId === userId).length;
+}
+
+function isFollowing(followerId, followingId) {
+  return state.follows.some(
+    f => f.followerId === followerId && f.followingId === followingId
+  );
+}
+
+function toggleFollow(targetUserId) {
+  const me = currentUser();
+  if (!me || me.id === targetUserId) return;
+
+  const existing = state.follows.findIndex(
+    f => f.followerId === me.id && f.followingId === targetUserId
+  );
+
+  if (existing > -1) {
+    state.follows.splice(existing, 1);
+    setNotice("success", "Unfollowed creator.");
+  } else {
+    state.follows.push({
+      id: uid("follow"),
+      followerId: me.id,
+      followingId: targetUserId
+    });
+    setNotice("success", "Now following creator.");
+  }
+
+  saveState();
+  render();
+}
+
+function scoreUser(user) {
+  const posts = userPosts(user.id).length;
+  const followers = followerCount(user.id);
+  const following = followingCount(user.id);
+  return followers * 8 + posts * 5 + Math.max(0, 10 - following);
+}
+
+function rankingUsers(scope = "global", viewerCountry = "Global") {
+  let users = [...state.users];
+
+  if (scope === "local") {
+    users = users.filter(u => u.country === viewerCountry);
+  }
+
+  return users
+    .map(u => ({ ...u, score: scoreUser(u) }))
+    .sort((a, b) => b.score - a.score);
+}
+
+function getRankBadge(userId, scope = "global", viewerCountry = "Global") {
+  const ranked = rankingUsers(scope, viewerCountry);
+  const index = ranked.findIndex(u => u.id === userId);
+  if (index === -1) return null;
+  const pos = index + 1;
+
+  if (pos === 1) return { label: "#1 Trending", className: "rank-1" };
+  if (pos === 2) return { label: "#2 Trending", className: "rank-2" };
+  if (pos === 3) return { label: "#3 Trending", className: "rank-3" };
+  if (pos <= 10) return { label: `Top ${pos}`, className: "" };
+  return null;
+}
+
+function isAmbassador(userId, viewerCountry = "Global") {
+  const globalRank = rankingUsers("global");
+  const localRank = rankingUsers("local", viewerCountry);
+
+  const inGlobalTop3 = globalRank.slice(0, 3).some(u => u.id === userId);
+  const inLocalTop3 = localRank.slice(0, 3).some(u => u.id === userId);
+
+  return inGlobalTop3 || inLocalTop3;
+}
+
+function formatTime(ts) {
+  const date = new Date(ts);
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function login(email, password) {
+  const user = state.users.find(
+    u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+  );
+
+  if (!user) {
+    setNotice("error", "Invalid email or password.");
+    return;
+  }
+
+  state.sessionUserId = user.id;
+  state.ui.appView = "home";
+  saveState();
+  render();
+}
+
+function signup(form) {
+  const exists = state.users.some(
+    u => u.email.toLowerCase() === form.email.toLowerCase()
+      || u.username.toLowerCase() === form.username.toLowerCase()
+  );
+
+  if (exists) {
+    setNotice("error", "Email or username already exists.");
+    return;
+  }
+
+  const user = {
+    id: uid("user"),
+    email: form.email,
+    password: form.password,
+    username: form.username,
+    displayName: form.displayName,
+    country: form.country,
+    bio: form.bio || "Creator on EarnX.",
+    createdAt: Date.now()
+  };
+
+  state.users.push(user);
+  state.sessionUserId = user.id;
+  state.ui.appView = "home";
+  saveState();
+  render();
+  setNotice("success", "Welcome to EarnX.");
+}
+
+function logout() {
+  state.sessionUserId = null;
+  state.ui.authView = "login";
+  saveState();
+  render();
+}
+
+function createPost(content, monetized) {
+  const me = currentUser();
+  if (!me) return;
+
+  if (!content.trim()) {
+    setNotice("error", "Write something before publishing.");
+    return;
+  }
+
+  state.posts.unshift({
+    id: uid("post"),
+    userId: me.id,
+    content: content.trim(),
+    monetized: Boolean(monetized),
+    createdAt: Date.now()
+  });
+
+  saveState();
+  state.ui.appView = "profile";
+  render();
+  setNotice("success", "Post published.");
+}
+
+function ensureProfileTarget() {
+  const me = currentUser();
+  if (!me) return;
+  if (!state.ui.profileUserId) {
+    state.ui.profileUserId = me.id;
+  }
+}
+
+function goToProfile(userId) {
+  state.ui.profileUserId = userId;
+  state.ui.appView = "profile";
+  saveState();
+  render();
+}
+
+function createMessage(toUserId, text) {
+  const me = currentUser();
+  if (!me) return;
+  if (!text.trim()) {
+    setNotice("error", "Message cannot be empty.");
+    return;
+  }
+  state.messages.push({
+    id: uid("msg"),
+    fromUserId: me.id,
+    toUserId,
+    text: text.trim(),
+    createdAt: Date.now()
+  });
+  saveState();
+  setNotice("success", "Message sent.");
+  render();
+}
+
+function renderNotice() {
+  if (!state.ui.notice) return "";
+  return `
+    <div class="notice ${state.ui.notice.type}">
+      ${escapeHtml(state.ui.notice.text)}
+    </div>
+  `;
+}
+
+function escapeHtml(str = "") {
+  return str
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function authView() {
+  const view = state.ui.authView;
+
+  if (view === "signup") {
+    return `
+      <div class="auth-shell">
+        <div class="brand">
+          <div class="brand-badge">X</div>
+          <div>
+            <div class="brand-title">EarnX</div>
+            <div class="small">Creator economy platform</div>
+          </div>
+        </div>
+        <p class="brand-subtitle">
+          Build your presence, compete in public rankings, and monetize directly from your audience.
+        </p>
+        ${renderNotice()}
+        <div class="card auth-card">
+          <h2 class="card-title">Create account</h2>
+          <p class="card-subtitle">Start with a real profile and a clean identity.</p>
+
+          <form id="signupForm">
+            <div class="field">
+              <label class="label">Display name</label>
+              <input class="input" name="displayName" placeholder="Rafael Amaral" required />
+            </div>
+
+            <div class="field">
+              <label class="label">Username</label>
+              <input class="input" name="username" placeholder="rafaelx" required />
+            </div>
+
+            <div class="field">
+              <label class="label">Email</label>
+              <input class="input" name="email" type="email" placeholder="you@example.com" required />
+            </div>
+
+            <div class="field">
+              <label class="label">Password</label>
+              <input class="input" name="password" type="password" placeholder="••••••••" required />
+            </div>
+
+            <div class="field">
+              <label class="label">Country</label>
+              <select class="select" name="country" required>
+                ${countries.map(c => `<option value="${c}">${c}</option>`).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="label">Bio</label>
+              <textarea class="textarea" name="bio" placeholder="Tell your audience what you create."></textarea>
+            </div>
+
+            <button class="btn btn-primary" type="submit">Create account</button>
+          </form>
+
+          <div class="auth-links">
+            <button class="btn btn-ghost" data-auth-view="login" type="button">Already have an account?</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (view === "forgot") {
+    return `
+      <div class="auth-shell">
+        <div class="brand">
+          <div class="brand-badge">X</div>
+          <div>
+            <div class="brand-title">EarnX</div>
+            <div class="small">Recover access</div>
+          </div>
+        </div>
+        ${renderNotice()}
+        <div class="card auth-card">
+          <h2 class="card-title">Forgot password</h2>
+          <p class="card-subtitle">This static frontend does not send emails yet. Use your saved credentials.</p>
+
+          <div class="field">
+            <label class="label">Email</label>
+            <input class="input" type="email" placeholder="you@example.com" />
+          </div>
+
+          <button class="btn btn-secondary" type="button" id="fakeRecoveryBtn">Continue</button>
+
+          <div class="auth-links">
+            <button class="btn btn-ghost" data-auth-view="login" type="button">Back to login</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="auth-shell">
+      <div class="brand">
+        <div class="brand-badge">X</div>
+        <div>
+          <div class="brand-title">EarnX</div>
+          <div class="small">Where creators compete and monetize</div>
+        </div>
+      </div>
+      <p class="brand-subtitle">
+        A premium social platform for creators building status, audience, and direct fan support.
+      </p>
+      ${renderNotice()}
+      <div class="card auth-card">
+        <h2 class="card-title">Login</h2>
+        <p class="card-subtitle">Access your creator account.</p>
+
+        <form id="loginForm">
+          <div class="field">
+            <label class="label">Email</label>
+            <input class="input" name="email" type="email" placeholder="you@example.com" required />
+          </div>
+
+          <div class="field">
+            <label class="label">Password</label>
+            <input class="input" name="password" type="password" placeholder="••••••••" required />
+          </div>
+
+          <button class="btn btn-primary" type="submit">Login</button>
+        </form>
+
+        <div class="auth-links">
+          <button class="btn btn-ghost" data-auth-view="forgot" type="button">Forgot password</button>
+          <button class="btn btn-ghost" data-auth-view="signup" type="button">Create account</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function appView() {
+  ensureProfileTarget();
+
+  return `
+    <div class="shell">
+      <main class="screen">
+        ${renderNotice()}
+        ${renderCurrentAppScreen()}
+      </main>
+      ${bottomNav()}
+    </div>
+  `;
+}
+
+function renderCurrentAppScreen() {
+  const view = state.ui.appView;
+  if (view === "search") return renderSearchScreen();
+  if (view === "create") return renderCreateScreen();
+  if (view === "messages") return renderMessagesScreen();
+  if (view === "profile") return renderProfileScreen();
+  if (view === "settings") return renderSettingsScreen();
+  if (view === "dashboard") return renderDashboardScreen();
+  return renderHomeScreen();
+}
+
+function renderHomeScreen() {
+  const me = currentUser();
+  const followingIds = state.follows
+    .filter(f => f.followerId === me.id)
+    .map(f => f.followingId);
+
+  const feedPosts = state.posts.filter(p => followingIds.includes(p.userId));
+
+  return `
+    <div class="topbar">
+      <div>
+        <div class="small">Home</div>
+        <h1>EarnX</h1>
+      </div>
+      <button class="icon-btn" id="openSettingsBtn">⚙️</button>
+    </div>
+
+    <div class="card hero">
+      <h2>Build status. Grow reach. Stay visible.</h2>
+      <p>Your feed shows creators you actually follow. Rankings stay public. Earnings stay private.</p>
+    </div>
+
+    ${
+      feedPosts.length === 0
+        ? `
+          <div class="card empty-state">
+            <h3>Follow creators to start building your feed</h3>
+            <p>Your home feed stays clean until you connect with real creators inside the platform.</p>
+            <button class="btn btn-primary" id="goDiscoverBtn">Discover creators</button>
+          </div>
+        `
+        : `
+          <div class="feed-list">
+            ${feedPosts.map(renderPostCard).join("")}
+          </div>
+        `
+    }
+  `;
+}
+
+function renderPostCard(post) {
+  const user = state.users.find(u => u.id === post.userId);
+  const me = currentUser();
+  const localBadge = getRankBadge(user.id, "local", me?.country || "Global");
+  const globalBadge = getRankBadge(user.id, "global", me?.country || "Global");
+  const ambassador = isAmbassador(user.id, me?.country || "Global");
+
+  return `
+    <div class="post-card card">
+      <div class="post-head">
+        <div class="avatar">${getInitials(user.displayName)}</div>
+        <div class="name-block">
+          <div class="name-line">
+            <h4>${escapeHtml(user.displayName)}</h4>
+            ${globalBadge ? `<span class="badge ${globalBadge.className}">${escapeHtml(globalBadge.label)}</span>` : ""}
+            ${ambassador ? `<span class="badge ambassador">Ambassador</span>` : ""}
+          </div>
+          <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)} · ${formatTime(post.createdAt)}</div>
+        </div>
+      </div>
+
+      <div class="post-content">${escapeHtml(post.content)}</div>
+
+      <div class="post-actions">
+        <span class="action-chip">♥ Support</span>
+        <span class="action-chip">💬 Comment</span>
+        <span class="action-chip">↗ Share</span>
+        ${post.monetized ? `<span class="action-chip">💸 Monetized</span>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderSearchScreen() {
+  const me = currentUser();
+  const query = (state.ui.searchQuery || "").toLowerCase().trim();
+  const tab = state.ui.discoverTab;
+
+  const localUsers = rankingUsers("local", me.country);
+  const globalUsers = rankingUsers("global");
+
+  let list = tab === "local" ? localUsers : globalUsers;
+
+  if (tab === "ambassadors") {
+    list = globalUsers.filter(u => isAmbassador(u.id, me.country));
+  }
+
+  if (tab === "trending") {
+    list = globalUsers.slice(0, 10);
+  }
+
+  if (query) {
+    list = list.filter(u =>
+      u.displayName.toLowerCase().includes(query) ||
+      u.username.toLowerCase().includes(query) ||
+      u.country.toLowerCase().includes(query)
+    );
+  }
+
+  return `
+    <div class="topbar">
+      <div>
+        <div class="small">Discover</div>
+        <h1>Search & Rankings</h1>
+      </div>
+      <button class="icon-btn" id="refreshSearchBtn">↻</button>
+    </div>
+
+    <div class="searchbar">
+      <input class="input" id="searchInput" placeholder="Search creators, countries, usernames..." value="${escapeHtml(state.ui.searchQuery || "")}" />
+    </div>
+
+    <div class="app-tabs">
+      <button class="app-tab ${tab === "global" ? "active" : ""}" data-discover-tab="global">Global</button>
+      <button class="app-tab ${tab === "local" ? "active" : ""}" data-discover-tab="local">Local</button>
+      <button class="app-tab ${tab === "trending" ? "active" : ""}" data-discover-tab="trending">Trending</button>
+      <button class="app-tab ${tab === "ambassadors" ? "active" : ""}" data-discover-tab="ambassadors">Ambassadors</button>
+    </div>
+
+    <div class="section-title">
+      <h3>Top positions</h3>
+      <span>${tab === "local" ? me.country : "Global"} visibility</span>
+    </div>
+
+    <div class="grid-2">
+      ${renderTopRankCards(tab === "local" ? localUsers : globalUsers, me.country)}
+    </div>
+
+    <div class="section-title">
+      <h3>${tab === "ambassadors" ? "EarnX Ambassadors" : "Creators"}</h3>
+      <span>${list.length} results</span>
+    </div>
+
+    ${
+      list.length === 0
+        ? `
+          <div class="card empty-state">
+            <h3>No creators found yet</h3>
+            <p>As real accounts join EarnX, discovery becomes more powerful across countries and global rankings.</p>
+          </div>
+        `
+        : `
+          <div class="list">
+            ${list.map(u => renderCreatorCard(u, me.country)).join("")}
+          </div>
+        `
+    }
+  `;
+}
+
+function renderTopRankCards(users, viewerCountry) {
+  const top3 = users.slice(0, 3);
+
+  if (top3.length === 0) {
+    return `
+      <div class="rank-card card">
+        <div class="rank-number gold">#1</div>
+        <div class="meta">No live ranking yet</div>
+      </div>
+      <div class="rank-card card">
+        <div class="rank-number silver">#2</div>
+        <div class="meta">Waiting for creator activity</div>
+      </div>
+    `;
+  }
+
+  return top3.map((u, idx) => {
+    const tone = idx === 0 ? "gold" : idx === 1 ? "silver" : "bronze";
+    const badgeText = idx === 0 ? "Crown position" : idx === 1 ? "Second position" : "Third position";
+
+    return `
+      <div class="rank-card card">
+        <div class="rank-number ${tone}">#${idx + 1}</div>
+        <div class="name-line">
+          <h4>${escapeHtml(u.displayName)}</h4>
+        </div>
+        <div class="meta">@${escapeHtml(u.username)} · ${escapeHtml(u.country)}</div>
+        <div class="hr"></div>
+        <div class="small">${badgeText}</div>
+        ${isAmbassador(u.id, viewerCountry) ? `<div style="margin-top:10px;"><span class="badge ambassador">Ambassador</span></div>` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+function renderCreatorCard(user, viewerCountry) {
+  const me = currentUser();
+  const own = me.id === user.id;
+  const followed = isFollowing(me.id, user.id);
+  const badge = getRankBadge(user.id, "global", viewerCountry);
+  const ambassador = isAmbassador(user.id, viewerCountry);
+
+  return `
+    <div class="creator-card card">
+      <div class="creator-head">
+        <div class="avatar">${getInitials(user.displayName)}</div>
+        <div class="name-block" style="flex:1;">
+          <div class="name-line">
+            <h4>${escapeHtml(user.displayName)}</h4>
+            ${badge ? `<span class="badge ${badge.className}">${escapeHtml(badge.label)}</span>` : ""}
+            ${ambassador ? `<span class="badge ambassador">${user.country === viewerCountry ? "Country Ambassador" : "Global Ambassador"}</span>` : ""}
+          </div>
+          <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
+        </div>
+      </div>
+
+      <div class="profile-bio">${escapeHtml(user.bio || "Creator on EarnX.")}</div>
+
+      <div class="profile-meta" style="margin-top:14px;">
+        <div class="profile-stat">
+          <strong>${followerCount(user.id)}</strong>
+          <span>Followers</span>
+        </div>
+        <div class="profile-stat">
+          <strong>${userPosts(user.id).length}</strong>
+          <span>Posts</span>
+        </div>
+        <div class="profile-stat">
+          <strong>${scoreUser(user)}</strong>
+          <span>Trend Score</span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        <button class="btn btn-secondary" data-open-profile="${user.id}">
+          View profile
+        </button>
+        ${
+          own
+            ? `<button class="btn btn-primary" data-go-dashboard="1">Dashboard</button>`
+            : `<button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderCreateScreen() {
+  return `
+    <div class="topbar">
+      <div>
+        <div class="small">Create</div>
+        <h1>Publish content</h1>
+      </div>
+      <div></div>
+    </div>
+
+    <div class="card auth-card">
+      <h2 class="card-title">New post</h2>
+      <p class="card-subtitle">Speak to your audience clearly. Status grows from consistency.</p>
+
+      <form id="createPostForm">
+        <div class="field">
+          <label class="label">Caption</label>
+          <textarea class="textarea" name="content" placeholder="Share an update, drop a thought, or publish something your audience can support."></textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">Visibility</label>
+          <select class="select" name="visibility">
+            <option value="public">Public</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Monetization</label>
+          <div class="row">
+            <label class="action-chip" style="justify-content:center; padding:14px;">
+              <input type="checkbox" name="monetized" style="margin-right:8px;"> Enable support
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Publish</button>
+      </form>
+    </div>
+  `;
+}
+
+function renderMessagesScreen() {
+  const me = currentUser();
+  const inboxUsers = state.users.filter(u => u.id !== me.id);
+  const recent = state.messages
+    .filter(m => m.fromUserId === me.id || m.toUserId === me.id)
+    .sort((a, b) => b.createdAt - a.createdAt);
+
+  return `
+    <div class="topbar">
+      <div>
+        <div class="small">Messages</div>
+        <h1>Inbox</h1>
+      </div>
+      <div></div>
+    </div>
+
+    ${
+      inboxUsers.length === 0
+        ? `
+          <div class="card empty-state">
+            <h3>No messages yet</h3>
+            <p>As more creators join EarnX, direct communication starts here.</p>
+          </div>
+        `
+        : `
+          <div class="section-title">
+            <h3>Quick message</h3>
+            <span>Direct creator contact</span>
+          </div>
+          <div class="card auth-card">
+            <form id="messageForm">
+              <div class="field">
+                <label class="label">Send to</label>
+                <select class="select" name="toUserId">
+                  ${inboxUsers.map(u => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${escapeHtml(u.username)})</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label class="label">Message</label>
+                <textarea class="textarea" name="text" placeholder="Write a direct message."></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit">Send message</button>
+            </form>
+          </div>
+        `
+    }
+
+    <div class="section-title">
+      <h3>Recent activity</h3>
+      <span>${recent.length} messages</span>
+    </div>
+
+    ${
+      recent.length === 0
+        ? `
+          <div class="card empty-state">
+            <h3>Your inbox is quiet</h3>
+            <p>When creator conversations begin, they will appear here in a clean and private thread experience.</p>
+          </div>
+        `
+        : `
+          <div class="list">
+            ${recent.map(msg => {
+              const from = state.users.find(u => u.id === msg.fromUserId);
+              const to = state.users.find(u => u.id === msg.toUserId);
+              const other = msg.fromUserId === me.id ? to : from;
+              return `
+                <div class="message-card card">
+                  <div class="message-head">
+                    <div class="avatar">${getInitials(other.displayName)}</div>
+                    <div class="name-block">
+                      <div class="name-line">
+                        <h4>${escapeHtml(other.displayName)}</h4>
+                      </div>
+                      <div class="handle">${msg.fromUserId === me.id ? "To" : "From"} @${escapeHtml(other.username)} · ${formatTime(msg.createdAt)}</div>
+                    </div>
+                  </div>
+                  <div class="post-content">${escapeHtml(msg.text)}</div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `
+    }
+  `;
+}
+
+function renderProfileScreen() {
+  const me = currentUser();
+  const user = state.users.find(u => u.id === state.ui.profileUserId) || me;
+  const own = user.id === me.id;
+  const posts = userPosts(user.id);
+  const badge = getRankBadge(user.id, "global", me.country);
+  const localBadge = getRankBadge(user.id, "local", me.country);
+  const ambassador = isAmbassador(user.id, me.country);
+
+  return `
+    <div class="topbar">
+      <div>
+        <div class="small">Profile</div>
+        <h1>${own ? "Your profile" : "Creator profile"}</h1>
+      </div>
+      <button class="icon-btn" id="profileSettingsBtn">⚙️</button>
+    </div>
+
+    <div class="card profile-card">
+      <div class="profile-head">
+        <div class="avatar large">${getInitials(user.displayName)}</div>
+        <div class="name-block">
+          <div class="name-line">
+            <h3>${escapeHtml(user.displayName)}</h3>
+          </div>
+          <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            ${badge ? `<span class="badge ${badge.className}">${escapeHtml(badge.label)}</span>` : ""}
+            ${localBadge ? `<span class="badge">${escapeHtml(localBadge.label)} Local</span>` : ""}
+            ${ambassador ? `<span class="badge ambassador">${user.country === me.country ? "Country Ambassador" : "Global Ambassador"}</span>` : ""}
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-bio">${escapeHtml(user.bio || "Creator on EarnX.")}</div>
+
+      <div class="profile-meta">
+        <div class="profile-stat">
+          <strong>${followerCount(user.id)}</strong>
+          <span>Followers</span>
+        </div>
+        <div class="profile-stat">
+          <strong>${followingCount(user.id)}</strong>
+          <span>Following</span>
+        </div>
+        <div class="profile-stat">
+          <strong>${posts.length}</strong>
+          <span>Posts</span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        ${
+          own
+            ? `
+              <button class="btn btn-primary" data-go-dashboard="1">Private dashboard</button>
+              <button class="btn btn-secondary" data-go-settings="1">Settings</button>
+            `
+            : `
+              <button class="btn btn-primary" data-follow="${user.id}">
+                ${isFollowing(me.id, user.id) ? "Following" : "Follow"}
+              </button>
+              <button class="btn btn-secondary" data-message-user="${user.id}">Message</button>
+            `
+        }
+      </div>
+    </div>
+
+    <div class="section-title">
+      <h3>${own ? "Your posts" : "Creator posts"}</h3>
+      <span>${posts.length} total</span>
+    </div>
+
+    ${
+      posts.length === 0
+        ? `
+          <div class="card empty-state">
+            <h3>No posts yet</h3>
+            <p>${own ? "Your published content will appear here." : "This creator has not published anything yet."}</p>
+          </div>
+        `
+        : `
+          <div class="feed-list">
+            ${posts.map(renderPostCard).join("")}
+          </div>
+        `
+    }
+  `;
+}
+
+function renderSettingsScreen() {
+  const me = currentUser();
+
+  return `
+    <div class="topbar">
+      <div>
+        <div class="small">Settings</div>
+        <h1>Account & privacy</h1>
+      </div>
+      <div></div>
+    </div>
+
+    <div class="list">
+      <div class="setting-card card">
+        <div class="card-title">Profile access</div>
+        <p class="card-subtitle">Edit profile, public identity, and creator presentation.</p>
+        <button class="btn btn-secondary" data-open-profile="${me.id}">Open profile</button>
+      </div>
+
+      <div class="setting-card card">
+        <div class="card-title">Private dashboard</div>
+        <p class="card-subtitle">Your earnings, analytics, ranking movement, and monetization stay visible only to you.</p>
+        <button class="btn btn-primary" data-go-dashboard="1">Open dashboard</button>
+      </div>
+
+      <div class="setting-card card">
+        <div class="card-title">Notifications</div>
+        <p class="card-subtitle">Ranking changes, new followers, support events, and private messages.</p>
+        <div class="small">Frontend UI only for now.</div>
+      </div>
+
+      <div class="setting-card card">
+        <div class="card-title">Payout methods</div>
+        <p class="card-subtitle">Reserved for backend integration.</p>
+        <div class="small">Private creator-only financial data will plug in here.</div>
+      </div>
+
+      <div class="setting-card card">
+        <div class="card-title">Logout</div>
+        <p class="card-subtitle">Securely exit your EarnX session.</p>
+        <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderDashboardScreen() {
+  const me = currentUser();
+  const posts = userPosts(me.id);
+  const rankGlobal = rankingUsers("global").findIndex(u => u.id === me.id) + 1;
+  const rankLocal = rankingUsers("local", me.country).findIndex(u => u.id === me.id) + 1;
+
+  return `
+    <div class="topbar">
+      <div>
+        <div class="small">Private dashboard</div>
+        <h1>Creator analytics</h1>
+      </div>
+      <div></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="stat-card card">
+        <strong>$0.00</strong>
+        <span>Earnings summary</span>
+      </div>
+      <div class="stat-card card">
+        <strong>${followerCount(me.id)}</strong>
+        <span>Audience size</span>
+      </div>
+      <div class="stat-card card">
+        <strong>${posts.length}</strong>
+        <span>Published posts</span>
+      </div>
+      <div class="stat-card card">
+        <strong>${scoreUser(me)}</strong>
+        <span>Trend score</span>
+      </div>
+      <div class="stat-card card">
+        <strong>${rankGlobal || "—"}</strong>
+        <span>Global rank</span>
+      </div>
+      <div class="stat-card card">
+        <strong>${rankLocal || "—"}</strong>
+        <span>${escapeHtml(me.country)} rank</span>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <h3>Private metrics</h3>
+      <span>Visible only to creator</span>
+    </div>
+
+    <div class="list">
+      <div class="setting-card card">
+        <div class="card-title">Monetization performance</div>
+        <p class="card-subtitle">This area is reserved for real fan support, payouts, and subscription data once backend is connected.</p>
+      </div>
+
+      <div class="setting-card card">
+        <div class="card-title">Audience analytics</div>
+        <p class="card-subtitle">Reach, retention, support activity, and conversion metrics will appear here privately.</p>
+      </div>
+
+      <div class="setting-card card">
+        <div class="card-title">Ranking movement</div>
+        <p class="card-subtitle">EarnX will track how close you are to #1, #2, #3 and the Top 10 in your country and globally.</p>
+      </div>
+    </div>
+  `;
+}
+
+function bottomNav() {
+  const items = [
+    ["home", "🏠", "Home"],
+    ["search", "🔍", "Search"],
+    ["create", "➕", "Create"],
+    ["messages", "💬", "Messages"],
+    ["profile", "👤", "Profile"]
+  ];
+
+  return `
+    <nav class="bottom-nav">
+      ${items.map(([id, emoji, label]) => `
+        <button class="nav-btn ${state.ui.appView === id ? "active" : ""}" data-nav="${id}">
+          <span class="nav-emoji">${emoji}</span>
+          <span>${label}</span>
+        </button>
+      `).join("")}
+    </nav>
+  `;
+}
+
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = currentUser() ? appView() : authView();
+  bindEvents();
+}
+
+function bindEvents() {
+  document.querySelectorAll("[data-auth-view]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.ui.authView = btn.dataset.authView;
+      saveState();
+      render();
+    });
+  });
+
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) {
+    loginForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const fd = new FormData(loginForm);
+      login(fd.get("email"), fd.get("password"));
+    });
+  }
+
+  const signupForm = document.getElementById("signupForm");
+  if (signupForm) {
+    signupForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const fd = new FormData(signupForm);
+      signup({
+        displayName: String(fd.get("displayName")).trim(),
+        username: String(fd.get("username")).trim(),
+        email: String(fd.get("email")).trim(),
+        password: String(fd.get("password")),
+        country: String(fd.get("country")),
+        bio: String(fd.get("bio")).trim()
+      });
+    });
+  }
+
+  const fakeRecoveryBtn = document.getElementById("fakeRecoveryBtn");
+  if (fakeRecoveryBtn) {
+    fakeRecoveryBtn.addEventListener("click", () => {
+      setNotice("success", "Recovery flow reserved for backend integration.");
+    });
+  }
+
+  document.querySelectorAll("[data-nav]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.ui.appView = btn.dataset.nav;
+      saveState();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-discover-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.ui.discoverTab = btn.dataset.discoverTab;
+      saveState();
+      render();
+    });
+  });
+
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    searchInput.addEventListener("input", e => {
+      state.ui.searchQuery = e.target.value;
+      saveState();
+      render();
+    });
+  }
+
+  document.querySelectorAll("[data-follow]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      toggleFollow(btn.dataset.follow);
+    });
+  });
+
+  document.querySelectorAll("[data-open-profile]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      goToProfile(btn.dataset.openProfile);
+    });
+  });
+
+  document.querySelectorAll("[data-go-dashboard]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.ui.appView = "dashboard";
+      saveState();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-go-settings]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.ui.appView = "settings";
+      saveState();
+      render();
+    });
+  });
+
+  const openSettingsBtn = document.getElementById("openSettingsBtn");
+  if (openSettingsBtn) {
+    openSettingsBtn.addEventListener("click", () => {
+      state.ui.appView = "settings";
+      saveState();
+      render();
+    });
+  }
+
+  const profileSettingsBtn = document.getElementById("profileSettingsBtn");
+  if (profileSettingsBtn) {
+    profileSettingsBtn.addEventListener("click", () => {
+      state.ui.appView = "settings";
+      saveState();
+      render();
+    });
+  }
+
+  const goDiscoverBtn = document.getElementById("goDiscoverBtn");
+  if (goDiscoverBtn) {
+    goDiscoverBtn.addEventListener("click", () => {
+      state.ui.appView = "search";
+      saveState();
+      render();
+    });
+  }
+
+  const createPostForm = document.getElementById("createPostForm");
+  if (createPostForm) {
+    createPostForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const fd = new FormData(createPostForm);
+      createPost(fd.get("content"), fd.get("monetized"));
+    });
+  }
+
+  const messageForm = document.getElementById("messageForm");
+  if (messageForm) {
+    messageForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const fd = new FormData(messageForm);
+      createMessage(String(fd.get("toUserId")), String(fd.get("text")));
+    });
+  }
+
+  document.querySelectorAll("[data-message-user]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.ui.appView = "messages";
+      saveState();
+      render();
+    });
+  });
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logout);
+  }
+
+  const refreshSearchBtn = document.getElementById("refreshSearchBtn");
+  if (refreshSearchBtn) {
+    refreshSearchBtn.addEventListener("click", () => render());
+  }
+}
+
+render();
