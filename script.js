@@ -1,4 +1,4 @@
-const STORAGE_KEY = "earnx_app_v2";
+const STORAGE_KEY = "earnx_app_v3";
 
 const countries = [
   "Puerto Rico",
@@ -21,7 +21,8 @@ const initialState = {
     discoverTab: "global",
     profileUserId: null,
     notice: null,
-    searchQuery: ""
+    searchQuery: "",
+    theme: "dark"
   },
   users: [],
   posts: [],
@@ -58,6 +59,18 @@ function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeEmail(email) {
+  return String(email).trim().toLowerCase();
+}
+
+function escapeHtml(str = "") {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function setNotice(type, text) {
   state.ui.notice = { type, text };
   saveState();
@@ -72,16 +85,20 @@ function setNotice(type, text) {
   }, 2400);
 }
 
-function currentUser() {
-  return state.users.find((u) => u.id === state.sessionUserId) || null;
+function applyTheme() {
+  const theme = state.ui.theme || "dark";
+  document.body.classList.toggle("light-theme", theme === "light");
 }
 
-function escapeHtml(str = "") {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+function setTheme(theme) {
+  state.ui.theme = theme;
+  saveState();
+  applyTheme();
+  render();
+}
+
+function currentUser() {
+  return state.users.find((u) => u.id === state.sessionUserId) || null;
 }
 
 function getInitials(name = "") {
@@ -186,10 +203,13 @@ function toggleFollow(targetUserId) {
 }
 
 function login(email, password) {
+  const cleanEmail = normalizeEmail(email);
+  const cleanPassword = String(password);
+
   const user = state.users.find(
     (u) =>
-      u.email.toLowerCase() === String(email).toLowerCase() &&
-      u.password === password
+      normalizeEmail(u.email) === cleanEmail &&
+      String(u.password) === cleanPassword
   );
 
   if (!user) {
@@ -205,10 +225,13 @@ function login(email, password) {
 }
 
 function signup(form) {
+  const cleanEmail = normalizeEmail(form.email);
+  const cleanUsername = String(form.username).trim().toLowerCase();
+
   const exists = state.users.some(
     (u) =>
-      u.email.toLowerCase() === form.email.toLowerCase() ||
-      u.username.toLowerCase() === form.username.toLowerCase()
+      normalizeEmail(u.email) === cleanEmail ||
+      String(u.username).trim().toLowerCase() === cleanUsername
   );
 
   if (exists) {
@@ -218,12 +241,12 @@ function signup(form) {
 
   const newUser = {
     id: uid("user"),
-    displayName: form.displayName,
-    username: form.username,
-    email: form.email,
-    password: form.password,
-    country: form.country,
-    bio: form.bio || "Creator on EarnX.",
+    displayName: String(form.displayName).trim(),
+    username: String(form.username).trim(),
+    email: cleanEmail,
+    password: String(form.password),
+    country: String(form.country),
+    bio: String(form.bio || "").trim() || "Creator on EarnX.",
     createdAt: Date.now()
   };
 
@@ -492,7 +515,7 @@ function renderHomeScreen() {
         <span class="eyebrow">Home</span>
         <h1>Following & momentum</h1>
       </div>
-      <button class="icon-btn" id="openSettingsBtn">⚙️</button>
+      <button class="icon-btn" id="openSettingsBtn">Settings</button>
     </div>
 
     <div class="card hero">
@@ -598,10 +621,10 @@ function renderPostCard(post) {
       <div class="post-content">${escapeHtml(post.content)}</div>
 
       <div class="post-actions">
-        <span class="chip">♥ Support</span>
-        <span class="chip">💬 Comment</span>
-        <span class="chip">↗ Share</span>
-        ${post.monetized ? `<span class="chip">💸 Support enabled</span>` : ""}
+        <span class="chip">Support</span>
+        <span class="chip">Comment</span>
+        <span class="chip">Share</span>
+        ${post.monetized ? `<span class="chip">Support enabled</span>` : ""}
       </div>
     </div>
   `;
@@ -637,7 +660,7 @@ function renderSearchScreen() {
         <span class="eyebrow">Discover</span>
         <h1>Global, local, ambassadors</h1>
       </div>
-      <button class="icon-btn" id="refreshSearchBtn">↻</button>
+      <button class="icon-btn" id="refreshSearchBtn">Refresh</button>
     </div>
 
     <div class="searchbar">
@@ -859,11 +882,7 @@ function renderMessagesScreen() {
 
       ${
         recent.length
-          ? `
-            <div class="list">
-              ${recent.map(renderMessageCard).join("")}
-            </div>
-          `
+          ? `<div class="list">${recent.map(renderMessageCard).join("")}</div>`
           : `
             <div class="panel empty-state">
               <h3>Your inbox is quiet</h3>
@@ -900,8 +919,7 @@ function renderMessageCard(msg) {
 
 function renderProfileScreen() {
   const me = currentUser();
-  const user =
-    state.users.find((u) => u.id === state.ui.profileUserId) || me;
+  const user = state.users.find((u) => u.id === state.ui.profileUserId) || me;
 
   const own = user.id === me.id;
   const posts = userPosts(user.id);
@@ -916,7 +934,7 @@ function renderProfileScreen() {
         <span class="eyebrow">Profile</span>
         <h1>${own ? "Identity & business" : "Creator identity"}</h1>
       </div>
-      <button class="icon-btn" id="profileSettingsBtn">⚙️</button>
+      <button class="icon-btn" id="profileSettingsBtn">Settings</button>
     </div>
 
     <div class="card profile-card">
@@ -1104,6 +1122,15 @@ function renderSettingsScreen() {
       </div>
 
       <div class="setting-card">
+        <div class="card-title">Appearance</div>
+        <p class="card-subtitle">Choose how EarnX looks on your device.</p>
+        <div class="row">
+          <button class="btn ${state.ui.theme === "dark" ? "btn-primary" : "btn-secondary"}" id="themeDarkBtn">Dark</button>
+          <button class="btn ${state.ui.theme === "light" ? "btn-primary" : "btn-secondary"}" id="themeLightBtn">Light</button>
+        </div>
+      </div>
+
+      <div class="setting-card">
         <div class="card-title">Notifications</div>
         <p class="card-subtitle">Reserved for follower changes, ranking alerts, and private message activity.</p>
       </div>
@@ -1124,20 +1151,19 @@ function renderSettingsScreen() {
 
 function bottomNav() {
   const items = [
-    ["home", "🏠", "Home"],
-    ["search", "🔍", "Search"],
-    ["create", "➕", "Create"],
-    ["messages", "💬", "Messages"],
-    ["profile", "👤", "Profile"]
+    ["home", "Home"],
+    ["search", "Search"],
+    ["create", "Create"],
+    ["messages", "Messages"],
+    ["profile", "Profile"]
   ];
 
   return `
     <nav class="bottom-nav">
       ${items
         .map(
-          ([key, emoji, label]) => `
+          ([key, label]) => `
             <button class="nav-btn ${state.ui.appView === key ? "active" : ""}" data-nav="${key}">
-              <span class="nav-emoji">${emoji}</span>
               <span>${label}</span>
             </button>
           `
@@ -1148,6 +1174,7 @@ function bottomNav() {
 }
 
 function render() {
+  applyTheme();
   const app = document.getElementById("app");
   app.innerHTML = currentUser() ? appView() : authView();
   bindEvents();
@@ -1311,81 +1338,16 @@ function bindEvents() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", logout);
   }
+
+  const themeDarkBtn = document.getElementById("themeDarkBtn");
+  if (themeDarkBtn) {
+    themeDarkBtn.addEventListener("click", () => setTheme("dark"));
+  }
+
+  const themeLightBtn = document.getElementById("themeLightBtn");
+  if (themeLightBtn) {
+    themeLightBtn.addEventListener("click", () => setTheme("light"));
+  }
 }
 
 render();
-function applyTheme() {
-  const theme = state.ui.theme || "dark";
-  document.body.classList.toggle("light-theme", theme === "light");
-}
-
-function setTheme(theme) {
-  state.ui.theme = theme;
-  saveState();
-  applyTheme();
-  render();
-}
-function render() {
-  applyTheme();
-  const app = document.getElementById("app");
-  app.innerHTML = currentUser() ? appView() : authView();
-  bindEvents();
-}
-function normalizeEmail(email) {
-  return String(email).trim().toLowerCase();
-}
-function login(email, password) {
-  const cleanEmail = normalizeEmail(email);
-  const cleanPassword = String(password);
-
-  const user = state.users.find(
-    (u) =>
-      normalizeEmail(u.email) === cleanEmail &&
-      String(u.password) === cleanPassword
-  );
-
-  if (!user) {
-    setNotice("error", "Invalid email or password.");
-    return;
-  }
-
-  state.sessionUserId = user.id;
-  state.ui.appView = "home";
-  state.ui.profileUserId = user.id;
-  saveState();
-  render();
-}
-function signup(form) {
-  const cleanEmail = normalizeEmail(form.email);
-  const cleanUsername = String(form.username).trim().toLowerCase();
-
-  const exists = state.users.some(
-    (u) =>
-      normalizeEmail(u.email) === cleanEmail ||
-      String(u.username).trim().toLowerCase() === cleanUsername
-  );
-
-  if (exists) {
-    setNotice("error", "Email or username already exists.");
-    return;
-  }
-
-  const newUser = {
-    id: uid("user"),
-    displayName: String(form.displayName).trim(),
-    username: String(form.username).trim(),
-    email: cleanEmail,
-    password: String(form.password),
-    country: String(form.country),
-    bio: String(form.bio || "").trim() || "Creator on EarnX.",
-    createdAt: Date.now()
-  };
-
-  state.users.push(newUser);
-  state.sessionUserId = newUser.id;
-  state.ui.appView = "home";
-  state.ui.profileUserId = newUser.id;
-  saveState();
-  render();
-  setNotice("success", "Welcome to EarnX.");
-}
