@@ -1,4 +1,4 @@
-const STORAGE_KEY = "earnx_app_stable_v1";
+const STORAGE_KEY = "earnx_app_stable_v2";
 
 const countries = [
   "Puerto Rico",
@@ -33,17 +33,17 @@ const initialState = {
 let state = loadState();
 
 function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return structuredClone(initialState);
-
   try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(initialState);
     const parsed = JSON.parse(raw);
     return {
       ...structuredClone(initialState),
       ...parsed,
       ui: {
         ...structuredClone(initialState).ui,
-        ...(parsed.ui || {})
+        ...(parsed.ui || {}),
+        notice: null  // never restore stale notices
       }
     };
   } catch {
@@ -52,15 +52,19 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // storage full or blocked – fail silently
+  }
 }
 
 function uid(prefix = "id") {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function normalizeEmail(email) {
-  return String(email).trim().toLowerCase();
+  return String(email || "").trim().toLowerCase();
 }
 
 function escapeHtml(str = "") {
@@ -71,20 +75,22 @@ function escapeHtml(str = "") {
     .replaceAll('"', "&quot;");
 }
 
-function setNotice(type, text) {
-  state.ui.notice = { type, text };
-  saveState();
-  render();
+// ─── Notice ───────────────────────────────────────────────────────────────────
+let noticeTimer = null;
 
-  setTimeout(() => {
-    if (state.ui.notice?.text === text) {
-      state.ui.notice = null;
-      saveState();
-      render();
-    }
-  }, 2400);
+function setNotice(type, text) {
+  if (noticeTimer) clearTimeout(noticeTimer);
+  state.ui.notice = { type, text };
+  render();
+  noticeTimer = setTimeout(() => {
+    state.ui.notice = null;
+    saveState();
+    render();
+    noticeTimer = null;
+  }, 2600);
 }
 
+// ─── Theme ────────────────────────────────────────────────────────────────────
 function applyTheme() {
   const theme = state.ui.theme || "dark";
   document.body.classList.toggle("light-theme", theme === "light");
@@ -97,23 +103,20 @@ function setTheme(theme) {
   render();
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function currentUser() {
+  if (!state.sessionUserId) return null;
   return state.users.find((u) => u.id === state.sessionUserId) || null;
 }
 
 function getInitials(name = "") {
-  return name
-    .trim()
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("") || "EX";
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "EX";
+  return parts.slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 }
 
 function formatDate(ts) {
-  const d = new Date(ts);
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 function userPosts(userId) {
@@ -143,11 +146,9 @@ function scoreUser(user) {
 
 function rankingUsers(scope = "global", viewerCountry = "Global") {
   let users = [...state.users];
-
   if (scope === "local") {
     users = users.filter((u) => u.country === viewerCountry);
   }
-
   return users
     .map((u) => ({ ...u, score: scoreUser(u) }))
     .sort((a, b) => b.score - a.score);
@@ -175,6 +176,7 @@ function isAmbassador(userId, viewerCountry = "Global") {
   return globalTop3.includes(userId) || localTop3.includes(userId);
 }
 
+// ─── Actions ──────────────────────────────────────────────────────────────────
 function toggleFollow(targetUserId) {
   const me = currentUser();
   if (!me || me.id === targetUserId) return;
@@ -202,31 +204,52 @@ function toggleFollow(targetUserId) {
   setNotice("success", "Now following creator.");
 }
 
+// FIX: login now trims and normalizes inputs before comparing
 function login(email, password) {
   const cleanEmail = normalizeEmail(email);
-  const cleanPassword = String(password);
+  const cleanPassword = String(password || "").trim();
+
+  if (!cleanEmail || !cleanPassword) {
+    setNotice("error", "Please enter your email and password.");
+    return;
+  }
 
   const user = state.users.find(
     (u) =>
       normalizeEmail(u.email) === cleanEmail &&
-      String(u.password) === cleanPassword
+      String(u.password).trim() === cleanPassword
   );
 
   if (!user) {
-    setNotice("error", "Invalid email or password.");
+    setNotice("error", "Incorrect email or password. Please try again.");
     return;
   }
 
   state.sessionUserId = user.id;
   state.ui.appView = "home";
   state.ui.profileUserId = user.id;
+  state.ui.authView = "login";
   saveState();
   render();
+  setNotice("success", `Welcome back, ${user.displayName}!`);
 }
 
+// FIX: signup validates all required fields before attempting
 function signup(form) {
   const cleanEmail = normalizeEmail(form.email);
-  const cleanUsername = String(form.username).trim().toLowerCase();
+  const cleanUsername = String(form.username || "").trim().toLowerCase();
+  const cleanDisplayName = String(form.displayName || "").trim();
+  const cleanPassword = String(form.password || "").trim();
+  const cleanCountry = String(form.country || "").trim();
+
+  if (!cleanDisplayName) { setNotice("error", "Display name is required."); return; }
+  if (!cleanUsername) { setNotice("error", "Username is required."); return; }
+  if (!cleanEmail) { setNotice("error", "Email is required."); return; }
+  if (!cleanPassword || cleanPassword.length < 4) {
+    setNotice("error", "Password must be at least 4 characters.");
+    return;
+  }
+  if (!cleanCountry) { setNotice("error", "Please select a country."); return; }
 
   const exists = state.users.some(
     (u) =>
@@ -235,17 +258,17 @@ function signup(form) {
   );
 
   if (exists) {
-    setNotice("error", "Email or username already exists.");
+    setNotice("error", "That email or username is already in use.");
     return;
   }
 
   const newUser = {
     id: uid("user"),
-    displayName: String(form.displayName).trim(),
-    username: String(form.username).trim(),
+    displayName: cleanDisplayName,
+    username: cleanUsername,
     email: cleanEmail,
-    password: String(form.password),
-    country: String(form.country),
+    password: cleanPassword,
+    country: cleanCountry,
     bio: String(form.bio || "").trim() || "Creator on EarnX.",
     createdAt: Date.now()
   };
@@ -256,12 +279,13 @@ function signup(form) {
   state.ui.profileUserId = newUser.id;
   saveState();
   render();
-  setNotice("success", "Welcome to EarnX.");
+  setNotice("success", `Welcome to EarnX, ${newUser.displayName}!`);
 }
 
 function logout() {
   state.sessionUserId = null;
   state.ui.authView = "login";
+  state.ui.notice = null;
   saveState();
   render();
 }
@@ -270,7 +294,7 @@ function createPost(content, monetized) {
   const me = currentUser();
   if (!me) return;
 
-  if (!content.trim()) {
+  if (!String(content || "").trim()) {
     setNotice("error", "Write something before publishing.");
     return;
   }
@@ -278,7 +302,7 @@ function createPost(content, monetized) {
   state.posts.unshift({
     id: uid("post"),
     userId: me.id,
-    content: content.trim(),
+    content: String(content).trim(),
     monetized: Boolean(monetized),
     createdAt: Date.now()
   });
@@ -294,7 +318,7 @@ function createMessage(toUserId, text) {
   const me = currentUser();
   if (!me) return;
 
-  if (!text.trim()) {
+  if (!String(text || "").trim()) {
     setNotice("error", "Message cannot be empty.");
     return;
   }
@@ -303,7 +327,7 @@ function createMessage(toUserId, text) {
     id: uid("msg"),
     fromUserId: me.id,
     toUserId,
-    text: text.trim(),
+    text: String(text).trim(),
     createdAt: Date.now()
   });
 
@@ -319,123 +343,78 @@ function goToProfile(userId) {
   render();
 }
 
+// ─── Render helpers ───────────────────────────────────────────────────────────
 function renderNotice() {
   if (!state.ui.notice) return "";
-  return `
-    <div class="notice ${state.ui.notice.type}">
-      ${escapeHtml(state.ui.notice.text)}
-    </div>
-  `;
+  return `<div class="notice ${state.ui.notice.type}">${escapeHtml(state.ui.notice.text)}</div>`;
 }
 
 function iconSvg(name) {
   const icons = {
-    home: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 10.5 12 3l9 7.5"></path>
-        <path d="M5.5 9.5V20h13V9.5"></path>
-      </svg>
-    `,
-    search: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="11" cy="11" r="6.5"></circle>
-        <path d="M16 16 21 21"></path>
-      </svg>
-    `,
-    create: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 5v14"></path>
-        <path d="M5 12h14"></path>
-      </svg>
-    `,
-    messages: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 6.5h16v10H8l-4 3v-13z"></path>
-      </svg>
-    `,
-    profile: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="8" r="3.5"></circle>
-        <path d="M5 20c1.8-3 4.2-4.5 7-4.5S17.2 17 19 20"></path>
-      </svg>
-    `,
-    settings: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="3.2"></circle>
-        <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.2a1 1 0 0 0-.9.6z"></path>
-      </svg>
-    `,
-    refresh: `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M20 11a8 8 0 1 0 2 5.3"></path>
-        <path d="M20 4v6h-6"></path>
-      </svg>
-    `
+    home: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg>`,
+    search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16 21 21"/></svg>`,
+    create: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`,
+    messages: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16v10H8l-4 3v-13z"/></svg>`,
+    profile: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.8-3 4.2-4.5 7-4.5S17.2 17 19 20"/></svg>`,
+    settings: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.2a1 1 0 0 0-.9.6z"/></svg>`,
+    refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v6h-6"/></svg>`
   };
-
   return icons[name] || "";
 }
 
+// ─── Auth views ───────────────────────────────────────────────────────────────
 function authView() {
   const view = state.ui.authView;
+
+  const brandHtml = `
+    <div class="brand">
+      <div class="brand-badge">X</div>
+      <div>
+        <div class="brand-title">EarnX</div>
+        <div class="small">Creator economy platform</div>
+      </div>
+    </div>
+  `;
 
   if (view === "signup") {
     return `
       <div class="auth-shell">
-        <div class="brand">
-          <div class="brand-badge">X</div>
-          <div>
-            <div class="brand-title">EarnX</div>
-            <div class="small">Creator economy platform</div>
-          </div>
-        </div>
-
-        <p class="brand-subtitle">
-          Build audience, compete for visibility, and turn attention into creator momentum.
-        </p>
-
+        ${brandHtml}
+        <p class="brand-subtitle">Build audience, compete for visibility, and turn attention into creator momentum.</p>
         ${renderNotice()}
-
         <div class="card auth-card">
           <h2 class="card-title">Create account</h2>
           <p class="card-subtitle">Start as a real creator with a clear identity.</p>
-
-          <form id="signupForm">
+          <form id="signupForm" novalidate>
             <div class="field">
               <label class="label">Display name</label>
-              <input class="input" name="displayName" placeholder="Rafael Amaral" required />
+              <input class="input" name="displayName" placeholder="Rafael Amaral" autocomplete="name" />
             </div>
-
             <div class="field">
               <label class="label">Username</label>
-              <input class="input" name="username" placeholder="rafaelx" required />
+              <input class="input" name="username" placeholder="rafaelx" autocomplete="username" />
             </div>
-
             <div class="field">
               <label class="label">Email</label>
-              <input class="input" type="email" name="email" placeholder="you@example.com" required />
+              <input class="input" type="email" name="email" placeholder="you@example.com" autocomplete="email" />
             </div>
-
             <div class="field">
               <label class="label">Password</label>
-              <input class="input" type="password" name="password" placeholder="••••••••" required />
+              <input class="input" type="password" name="password" placeholder="••••••••" autocomplete="new-password" />
             </div>
-
             <div class="field">
               <label class="label">Country</label>
-              <select class="select" name="country" required>
+              <select class="select" name="country">
+                <option value="">Select country…</option>
                 ${countries.map((c) => `<option value="${c}">${c}</option>`).join("")}
               </select>
             </div>
-
             <div class="field">
-              <label class="label">Bio</label>
+              <label class="label">Bio <span class="muted">(optional)</span></label>
               <textarea class="textarea" name="bio" placeholder="Tell your audience what you create."></textarea>
             </div>
-
             <button class="btn btn-primary" type="submit">Create account</button>
           </form>
-
           <div class="auth-links">
             <button class="btn btn-ghost" type="button" data-auth-view="login">Already have an account?</button>
           </div>
@@ -447,69 +426,44 @@ function authView() {
   if (view === "forgot") {
     return `
       <div class="auth-shell">
-        <div class="brand">
-          <div class="brand-badge">X</div>
-          <div>
-            <div class="brand-title">EarnX</div>
-            <div class="small">Recover access</div>
-          </div>
-        </div>
-
+        ${brandHtml}
         ${renderNotice()}
-
         <div class="card auth-card">
           <h2 class="card-title">Forgot password</h2>
-          <p class="card-subtitle">This static build does not send recovery emails yet.</p>
-
+          <p class="card-subtitle">Password recovery will be available once backend integration is live.</p>
           <div class="field">
             <label class="label">Email</label>
             <input class="input" type="email" placeholder="you@example.com" />
           </div>
-
           <button class="btn btn-secondary" type="button" id="fakeRecoveryBtn">Continue</button>
-
           <div class="auth-links">
-            <button class="btn btn-ghost" type="button" data-auth-view="login">Back to login</button>
+            <button class="btn btn-ghost" type="button" data-auth-view="login">← Back to login</button>
           </div>
         </div>
       </div>
     `;
   }
 
+  // Default: login
   return `
     <div class="auth-shell">
-      <div class="brand">
-        <div class="brand-badge">X</div>
-        <div>
-          <div class="brand-title">EarnX</div>
-          <div class="small">Status-driven creator platform</div>
-        </div>
-      </div>
-
-      <p class="brand-subtitle">
-        A premium social platform built around creator ambition, audience reach, and public ranking momentum.
-      </p>
-
+      ${brandHtml}
+      <p class="brand-subtitle">A premium social platform built around creator ambition, audience reach, and public ranking momentum.</p>
       ${renderNotice()}
-
       <div class="card auth-card">
         <h2 class="card-title">Login</h2>
         <p class="card-subtitle">Enter your creator account.</p>
-
-        <form id="loginForm">
+        <form id="loginForm" novalidate>
           <div class="field">
             <label class="label">Email</label>
-            <input class="input" type="email" name="email" placeholder="you@example.com" required />
+            <input class="input" type="email" name="email" placeholder="you@example.com" autocomplete="email" />
           </div>
-
           <div class="field">
             <label class="label">Password</label>
-            <input class="input" type="password" name="password" placeholder="••••••••" required />
+            <input class="input" type="password" name="password" placeholder="••••••••" autocomplete="current-password" />
           </div>
-
           <button class="btn btn-primary" type="submit">Login</button>
         </form>
-
         <div class="auth-links">
           <button class="btn btn-ghost" type="button" data-auth-view="forgot">Forgot password</button>
           <button class="btn btn-ghost" type="button" data-auth-view="signup">Create account</button>
@@ -519,6 +473,7 @@ function authView() {
   `;
 }
 
+// ─── App shell ────────────────────────────────────────────────────────────────
 function appView() {
   return `
     <div class="shell">
@@ -531,23 +486,17 @@ function appView() {
 
 function renderCurrentScreen() {
   switch (state.ui.appView) {
-    case "search":
-      return renderSearchScreen();
-    case "create":
-      return renderCreateScreen();
-    case "messages":
-      return renderMessagesScreen();
-    case "profile":
-      return renderProfileScreen();
-    case "settings":
-      return renderSettingsScreen();
-    case "dashboard":
-      return renderDashboardScreen();
-    default:
-      return renderHomeScreen();
+    case "search":    return renderSearchScreen();
+    case "create":    return renderCreateScreen();
+    case "messages":  return renderMessagesScreen();
+    case "profile":   return renderProfileScreen();
+    case "settings":  return renderSettingsScreen();
+    case "dashboard": return renderDashboardScreen();
+    default:          return renderHomeScreen();
   }
 }
 
+// ─── Home ─────────────────────────────────────────────────────────────────────
 function renderHomeScreen() {
   const me = currentUser();
   const followingIds = state.follows
@@ -561,7 +510,7 @@ function renderHomeScreen() {
     <div class="topbar">
       <div>
         <span class="eyebrow">Home</span>
-        <h1>Following & momentum</h1>
+        <h1>Following &amp; momentum</h1>
       </div>
       <button class="icon-btn" id="openSettingsBtn" aria-label="Settings">
         <span class="nav-icon">${iconSvg("settings")}</span>
@@ -578,17 +527,13 @@ function renderHomeScreen() {
         <h3>Momentum</h3>
         <span class="section-meta">Global creators gaining status</span>
       </div>
-
       <div class="stack">
-        ${
-          rising.length
-            ? rising.map(renderMomentumCard).join("")
-            : `
-              <div class="panel empty-state">
-                <h3>No creator momentum yet</h3>
-                <p>As real creators publish and gain attention, rising movement will appear here.</p>
-              </div>
-            `
+        ${rising.length
+          ? rising.map(renderMomentumCard).join("")
+          : `<div class="panel empty-state">
+               <h3>No creator momentum yet</h3>
+               <p>As real creators publish and gain attention, rising movement will appear here.</p>
+             </div>`
         }
       </div>
     </section>
@@ -596,19 +541,15 @@ function renderHomeScreen() {
     <section class="section">
       <div class="section-head">
         <h3>Following feed</h3>
-        <span class="section-meta">${feed.length} posts</span>
+        <span class="section-meta">${feed.length} post${feed.length !== 1 ? "s" : ""}</span>
       </div>
-
-      ${
-        feed.length
-          ? `<div class="feed-list">${feed.map(renderPostCard).join("")}</div>`
-          : `
-            <div class="panel empty-state">
-              <h3>Follow creators to start building your feed</h3>
-              <p>Your home stays clean until you choose who deserves your attention.</p>
-              <button class="btn btn-primary" id="goDiscoverBtn">Go to discover</button>
-            </div>
-          `
+      ${feed.length
+        ? `<div class="feed-list">${feed.map(renderPostCard).join("")}</div>`
+        : `<div class="panel empty-state">
+             <h3>Follow creators to start building your feed</h3>
+             <p>Your home stays clean until you choose who deserves your attention.</p>
+             <button class="btn btn-primary" id="goDiscoverBtn">Go to discover</button>
+           </div>`
       }
     </section>
   `;
@@ -618,6 +559,7 @@ function renderMomentumCard(user) {
   const me = currentUser();
   const globalPos = getRankPosition(user.id, "global", me.country);
   const ambassador = isAmbassador(user.id, me.country);
+  const followed = isFollowing(me.id, user.id);
 
   return `
     <div class="momentum-card">
@@ -632,17 +574,13 @@ function renderMomentumCard(user) {
           <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
         </div>
       </div>
-
       <div class="post-actions">
-        <span class="chip">Trend Score ${scoreUser(user)}</span>
+        <span class="chip">Score ${scoreUser(user)}</span>
         <span class="chip">${followerCount(user.id)} followers</span>
       </div>
-
       <div class="row" style="margin-top:12px;">
         <button class="btn btn-secondary" data-open-profile="${user.id}">View profile</button>
-        <button class="btn btn-primary" data-follow="${user.id}">
-          ${isFollowing(me.id, user.id) ? "Following" : "Follow"}
-        </button>
+        <button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>
       </div>
     </div>
   `;
@@ -651,6 +589,7 @@ function renderMomentumCard(user) {
 function renderPostCard(post) {
   const me = currentUser();
   const user = state.users.find((u) => u.id === post.userId);
+  if (!user) return "";
   const badge = getRankBadge(user.id, "global", me.country);
   const ambassador = isAmbassador(user.id, me.country);
 
@@ -667,9 +606,7 @@ function renderPostCard(post) {
           <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)} · ${formatDate(post.createdAt)}</div>
         </div>
       </div>
-
       <div class="post-content">${escapeHtml(post.content)}</div>
-
       <div class="post-actions">
         <span class="chip">Support</span>
         <span class="chip">Comment</span>
@@ -680,6 +617,7 @@ function renderPostCard(post) {
   `;
 }
 
+// ─── Search / Discover ────────────────────────────────────────────────────────
 function renderSearchScreen() {
   const me = currentUser();
   const tab = state.ui.discoverTab;
@@ -692,8 +630,8 @@ function renderSearchScreen() {
 
   let list = global;
   if (tab === "local") list = local;
-  if (tab === "trending") list = rising;
-  if (tab === "ambassadors") list = ambassadors;
+  else if (tab === "trending") list = rising;
+  else if (tab === "ambassadors") list = ambassadors;
 
   if (query) {
     list = list.filter(
@@ -716,7 +654,7 @@ function renderSearchScreen() {
     </div>
 
     <div class="searchbar">
-      <input class="input" id="searchInput" placeholder="Search creators, usernames, countries..." value="${escapeHtml(state.ui.searchQuery)}" />
+      <input class="input" id="searchInput" placeholder="Search creators, usernames, countries…" value="${escapeHtml(state.ui.searchQuery)}" />
     </div>
 
     <div class="tabs">
@@ -731,9 +669,7 @@ function renderSearchScreen() {
         <h3>Top 3 global</h3>
         <span class="section-meta">Public status</span>
       </div>
-      <div class="rank-grid">
-        ${renderTopCards(global, me.country)}
-      </div>
+      <div class="rank-grid">${renderTopCards(global, me.country)}</div>
     </section>
 
     <section class="section">
@@ -741,26 +677,20 @@ function renderSearchScreen() {
         <h3>Top 3 in ${escapeHtml(me.country)}</h3>
         <span class="section-meta">Local visibility</span>
       </div>
-      <div class="rank-grid">
-        ${renderTopCards(local, me.country)}
-      </div>
+      <div class="rank-grid">${renderTopCards(local, me.country)}</div>
     </section>
 
     <section class="section">
       <div class="section-head">
         <h3>${tabLabel(tab)}</h3>
-        <span class="section-meta">${list.length} creators</span>
+        <span class="section-meta">${list.length} creator${list.length !== 1 ? "s" : ""}</span>
       </div>
-
-      ${
-        list.length
-          ? `<div class="list">${list.map((u) => renderCreatorCard(u)).join("")}</div>`
-          : `
-            <div class="panel empty-state">
-              <h3>No creators found yet</h3>
-              <p>Discovery becomes more powerful as real creator activity grows across countries and global rankings.</p>
-            </div>
-          `
+      ${list.length
+        ? `<div class="list">${list.map(renderCreatorCard).join("")}</div>`
+        : `<div class="panel empty-state">
+             <h3>No creators found yet</h3>
+             <p>Discovery becomes more powerful as real creator activity grows across countries and global rankings.</p>
+           </div>`
       }
     </section>
   `;
@@ -793,9 +723,7 @@ function renderTopCards(users, viewerCountry) {
     return `
       <div class="rank-card">
         <div class="rank-number ${tone}">#${i + 1}</div>
-        <div class="name-line">
-          <h4>${escapeHtml(u.displayName)}</h4>
-        </div>
+        <div class="name-line"><h4>${escapeHtml(u.displayName)}</h4></div>
         <div class="handle">@${escapeHtml(u.username)} · ${escapeHtml(u.country)}</div>
         <div class="mini-line"></div>
         <div class="post-actions">
@@ -828,28 +756,25 @@ function renderCreatorCard(user) {
           <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
         </div>
       </div>
-
       <div class="profile-bio">${escapeHtml(user.bio || "Creator on EarnX.")}</div>
-
       <div class="post-actions">
         <span class="chip">${followerCount(user.id)} followers</span>
         <span class="chip">${userPosts(user.id).length} posts</span>
         <span class="chip">Score ${scoreUser(user)}</span>
         ${localBadge ? `<span class="chip">${escapeHtml(localBadge.label)} local</span>` : ""}
       </div>
-
       <div class="row" style="margin-top:12px;">
         <button class="btn btn-secondary" data-open-profile="${user.id}">View profile</button>
-        ${
-          own
-            ? `<button class="btn btn-primary" data-go-dashboard="1">Dashboard</button>`
-            : `<button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>`
+        ${own
+          ? `<button class="btn btn-primary" data-go-dashboard="1">Dashboard</button>`
+          : `<button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>`
         }
       </div>
     </div>
   `;
 }
 
+// ─── Create ───────────────────────────────────────────────────────────────────
 function renderCreateScreen() {
   return `
     <div class="topbar">
@@ -859,30 +784,27 @@ function renderCreateScreen() {
       </div>
       <div></div>
     </div>
-
     <div class="card content-card">
       <h2 class="card-title">New post</h2>
       <p class="card-subtitle">Build consistency, visibility, and support momentum.</p>
-
-      <form id="createPostForm">
+      <form id="createPostForm" novalidate>
         <div class="field">
           <label class="label">Caption</label>
           <textarea class="textarea" name="content" placeholder="Publish a thought, an update, or a message to your audience."></textarea>
         </div>
-
         <div class="field">
           <label class="label">Monetization</label>
-          <label class="chip" style="padding:14px; justify-content:center;">
+          <label class="chip" style="padding:14px; justify-content:center; cursor:pointer; width:100%;">
             <input type="checkbox" name="monetized" style="margin-right:8px;"> Enable support button
           </label>
         </div>
-
         <button class="btn btn-primary" type="submit">Publish</button>
       </form>
     </div>
   `;
 }
 
+// ─── Messages ─────────────────────────────────────────────────────────────────
 function renderMessagesScreen() {
   const me = currentUser();
   const users = state.users.filter((u) => u.id !== me.id);
@@ -898,49 +820,37 @@ function renderMessagesScreen() {
       </div>
       <div></div>
     </div>
-
-    ${
-      users.length
-        ? `
-          <div class="card content-card">
-            <h2 class="card-title">Quick message</h2>
-            <p class="card-subtitle">Direct contact between creators and supporters starts here.</p>
-
-            <form id="messageForm">
-              <div class="field">
-                <label class="label">Send to</label>
-                <select class="select" name="toUserId">
-                  ${users.map((u) => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${escapeHtml(u.username)})</option>`).join("")}
-                </select>
-              </div>
-
-              <div class="field">
-                <label class="label">Message</label>
-                <textarea class="textarea" name="text" placeholder="Write a direct message."></textarea>
-              </div>
-
-              <button class="btn btn-primary" type="submit">Send message</button>
-            </form>
-          </div>
-        `
-        : ""
+    ${users.length
+      ? `<div class="card content-card">
+           <h2 class="card-title">Quick message</h2>
+           <p class="card-subtitle">Direct contact between creators and supporters starts here.</p>
+           <form id="messageForm" novalidate>
+             <div class="field">
+               <label class="label">Send to</label>
+               <select class="select" name="toUserId">
+                 ${users.map((u) => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${escapeHtml(u.username)})</option>`).join("")}
+               </select>
+             </div>
+             <div class="field">
+               <label class="label">Message</label>
+               <textarea class="textarea" name="text" placeholder="Write a direct message."></textarea>
+             </div>
+             <button class="btn btn-primary" type="submit">Send message</button>
+           </form>
+         </div>`
+      : ""
     }
-
     <section class="section">
       <div class="section-head">
         <h3>Recent inbox activity</h3>
-        <span class="section-meta">${recent.length} messages</span>
+        <span class="section-meta">${recent.length} message${recent.length !== 1 ? "s" : ""}</span>
       </div>
-
-      ${
-        recent.length
-          ? `<div class="list">${recent.map(renderMessageCard).join("")}</div>`
-          : `
-            <div class="panel empty-state">
-              <h3>Your inbox is quiet</h3>
-              <p>As creator communication begins, private interactions will appear here.</p>
-            </div>
-          `
+      ${recent.length
+        ? `<div class="list">${recent.map(renderMessageCard).join("")}</div>`
+        : `<div class="panel empty-state">
+             <h3>Your inbox is quiet</h3>
+             <p>As creator communication begins, private interactions will appear here.</p>
+           </div>`
       }
     </section>
   `;
@@ -950,6 +860,7 @@ function renderMessageCard(msg) {
   const me = currentUser();
   const from = state.users.find((u) => u.id === msg.fromUserId);
   const to = state.users.find((u) => u.id === msg.toUserId);
+  if (!from || !to) return "";
   const other = msg.fromUserId === me.id ? to : from;
 
   return `
@@ -957,18 +868,16 @@ function renderMessageCard(msg) {
       <div class="message-head">
         <div class="avatar">${getInitials(other.displayName)}</div>
         <div class="name-block">
-          <div class="name-line">
-            <h4>${escapeHtml(other.displayName)}</h4>
-          </div>
+          <div class="name-line"><h4>${escapeHtml(other.displayName)}</h4></div>
           <div class="handle">${msg.fromUserId === me.id ? "To" : "From"} @${escapeHtml(other.username)} · ${formatDate(msg.createdAt)}</div>
         </div>
       </div>
-
       <div class="post-content">${escapeHtml(msg.text)}</div>
     </div>
   `;
 }
 
+// ─── Profile ──────────────────────────────────────────────────────────────────
 function renderProfileScreen() {
   const me = currentUser();
   const user = state.users.find((u) => u.id === state.ui.profileUserId) || me;
@@ -984,7 +893,7 @@ function renderProfileScreen() {
     <div class="topbar">
       <div>
         <span class="eyebrow">Profile</span>
-        <h1>${own ? "Identity & business" : "Creator identity"}</h1>
+        <h1>${own ? "Identity &amp; business" : "Creator identity"}</h1>
       </div>
       <button class="icon-btn" id="profileSettingsBtn" aria-label="Settings">
         <span class="nav-icon">${iconSvg("settings")}</span>
@@ -995,11 +904,8 @@ function renderProfileScreen() {
       <div class="profile-head">
         <div class="avatar large">${getInitials(user.displayName)}</div>
         <div class="name-block">
-          <div class="name-line">
-            <h3>${escapeHtml(user.displayName)}</h3>
-          </div>
+          <div class="name-line"><h3>${escapeHtml(user.displayName)}</h3></div>
           <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
-
           <div class="post-actions" style="margin-top:10px;">
             ${globalPos ? `<span class="badge ${globalPos <= 3 ? `rank-${globalPos}` : ""}">Global #${globalPos}</span>` : ""}
             ${localPos ? `<span class="chip">${escapeHtml(user.country)} #${localPos}</span>` : ""}
@@ -1026,16 +932,11 @@ function renderProfileScreen() {
       </div>
 
       <div class="profile-actions row">
-        ${
-          own
-            ? `
-              <button class="btn btn-primary" data-go-dashboard="1">Creator Studio</button>
-              <button class="btn btn-secondary" data-go-settings="1">Settings</button>
-            `
-            : `
-              <button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>
-              <button class="btn btn-secondary" data-message-user="${user.id}">Message</button>
-            `
+        ${own
+          ? `<button class="btn btn-primary" data-go-dashboard="1">Creator Studio</button>
+             <button class="btn btn-secondary" data-go-settings="1">Settings</button>`
+          : `<button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>
+             <button class="btn btn-secondary" data-message-user="${user.id}">Message</button>`
         }
       </div>
     </div>
@@ -1045,11 +946,10 @@ function renderProfileScreen() {
         <h3>Status highlights</h3>
         <span class="section-meta">Public perception</span>
       </div>
-
       <div class="highlight-strip">
         <div class="highlight-card">
           <strong>${globalPos ? `#${globalPos}` : "—"}</strong>
-          <span class="small">Global rank position</span>
+          <span class="small">Global rank</span>
         </div>
         <div class="highlight-card">
           <strong>${scoreUser(user)}</strong>
@@ -1057,7 +957,7 @@ function renderProfileScreen() {
         </div>
         <div class="highlight-card">
           <strong>${ambassador ? "Yes" : "No"}</strong>
-          <span class="small">Ambassador status</span>
+          <span class="small">Ambassador</span>
         </div>
       </div>
     </section>
@@ -1065,23 +965,20 @@ function renderProfileScreen() {
     <section class="section">
       <div class="section-head">
         <h3>${own ? "Published content" : "Creator content"}</h3>
-        <span class="section-meta">${posts.length} posts</span>
+        <span class="section-meta">${posts.length} post${posts.length !== 1 ? "s" : ""}</span>
       </div>
-
-      ${
-        posts.length
-          ? `<div class="feed-list">${posts.map(renderPostCard).join("")}</div>`
-          : `
-            <div class="panel empty-state">
-              <h3>No posts yet</h3>
-              <p>${own ? "Your content will appear here as you publish." : "This creator has not published anything yet."}</p>
-            </div>
-          `
+      ${posts.length
+        ? `<div class="feed-list">${posts.map(renderPostCard).join("")}</div>`
+        : `<div class="panel empty-state">
+             <h3>No posts yet</h3>
+             <p>${own ? "Your content will appear here as you publish." : "This creator has not published anything yet."}</p>
+           </div>`
       }
     </section>
   `;
 }
 
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 function renderDashboardScreen() {
   const me = currentUser();
   const posts = userPosts(me.id);
@@ -1092,55 +989,32 @@ function renderDashboardScreen() {
     <div class="topbar">
       <div>
         <span class="eyebrow">Creator Studio</span>
-        <h1>Private growth & monetization</h1>
+        <h1>Private growth &amp; monetization</h1>
       </div>
       <div></div>
     </div>
-
     <div class="kpi-grid">
-      <div class="kpi-card">
-        <strong>$0.00</strong>
-        <span>Earnings summary</span>
-      </div>
-      <div class="kpi-card">
-        <strong>${followerCount(me.id)}</strong>
-        <span>Audience size</span>
-      </div>
-      <div class="kpi-card">
-        <strong>${posts.length}</strong>
-        <span>Published posts</span>
-      </div>
-      <div class="kpi-card">
-        <strong>${scoreUser(me)}</strong>
-        <span>Trend score</span>
-      </div>
-      <div class="kpi-card">
-        <strong>${globalPos || "—"}</strong>
-        <span>Global rank</span>
-      </div>
-      <div class="kpi-card">
-        <strong>${localPos || "—"}</strong>
-        <span>${escapeHtml(me.country)} rank</span>
-      </div>
+      <div class="kpi-card"><strong>$0.00</strong><span>Earnings summary</span></div>
+      <div class="kpi-card"><strong>${followerCount(me.id)}</strong><span>Audience size</span></div>
+      <div class="kpi-card"><strong>${posts.length}</strong><span>Published posts</span></div>
+      <div class="kpi-card"><strong>${scoreUser(me)}</strong><span>Trend score</span></div>
+      <div class="kpi-card"><strong>${globalPos || "—"}</strong><span>Global rank</span></div>
+      <div class="kpi-card"><strong>${localPos || "—"}</strong><span>${escapeHtml(me.country)} rank</span></div>
     </div>
-
     <section class="section">
       <div class="section-head">
         <h3>Private business blocks</h3>
         <span class="section-meta">Only visible to creator</span>
       </div>
-
       <div class="list">
         <div class="setting-card">
           <div class="card-title">Monetization performance</div>
           <p class="card-subtitle">Future area for fan support, subscriptions, conversion, and payout metrics.</p>
         </div>
-
         <div class="setting-card">
           <div class="card-title">Audience analytics</div>
           <p class="card-subtitle">Track reach, retention, and support behavior without exposing private numbers publicly.</p>
         </div>
-
         <div class="setting-card">
           <div class="card-title">Ranking movement</div>
           <p class="card-subtitle">See how close you are to the Top 10, Top 3, and ambassador status.</p>
@@ -1150,18 +1024,19 @@ function renderDashboardScreen() {
   `;
 }
 
+// ─── Settings ─────────────────────────────────────────────────────────────────
 function renderSettingsScreen() {
   const me = currentUser();
+  const isDark = state.ui.theme !== "light";
 
   return `
     <div class="topbar">
       <div>
         <span class="eyebrow">Settings</span>
-        <h1>Account & privacy</h1>
+        <h1>Account &amp; privacy</h1>
       </div>
       <div></div>
     </div>
-
     <div class="list">
       <div class="setting-card">
         <div class="card-title">Profile access</div>
@@ -1178,9 +1053,9 @@ function renderSettingsScreen() {
       <div class="setting-card">
         <div class="card-title">Appearance</div>
         <p class="card-subtitle">Choose how EarnX looks on your device.</p>
-        <div class="row">
-          <button class="btn ${state.ui.theme === "dark" ? "btn-primary" : "btn-secondary"}" id="themeDarkBtn">Dark</button>
-          <button class="btn ${state.ui.theme === "light" ? "btn-primary" : "btn-secondary"}" id="themeLightBtn">Light</button>
+        <div class="theme-toggle-row">
+          <button class="btn ${isDark ? "btn-primary" : "btn-secondary"}" id="themeDarkBtn">🌙 Dark</button>
+          <button class="btn ${!isDark ? "btn-primary" : "btn-secondary"}" id="themeLightBtn">☀️ Light</button>
         </div>
       </div>
 
@@ -1203,6 +1078,7 @@ function renderSettingsScreen() {
   `;
 }
 
+// ─── Bottom nav ───────────────────────────────────────────────────────────────
 function bottomNav() {
   const items = [
     ["home", "Home", "home"],
@@ -1214,20 +1090,17 @@ function bottomNav() {
 
   return `
     <nav class="bottom-nav">
-      ${items
-        .map(
-          ([key, label, icon]) => `
-            <button class="nav-btn ${state.ui.appView === key ? "active" : ""}" data-nav="${key}" aria-label="${label}">
-              <span class="nav-icon">${iconSvg(icon)}</span>
-              <span class="nav-label">${label}</span>
-            </button>
-          `
-        )
-        .join("")}
+      ${items.map(([key, label, icon]) => `
+        <button class="nav-btn ${state.ui.appView === key ? "active" : ""}" data-nav="${key}" aria-label="${label}">
+          <span class="nav-icon">${iconSvg(icon)}</span>
+          <span class="nav-label">${label}</span>
+        </button>
+      `).join("")}
     </nav>
   `;
 }
 
+// ─── Render + bind ────────────────────────────────────────────────────────────
 function render() {
   applyTheme();
   const app = document.getElementById("app");
@@ -1236,14 +1109,17 @@ function render() {
 }
 
 function bindEvents() {
+  // Auth view switches
   document.querySelectorAll("[data-auth-view]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.ui.authView = btn.dataset.authView;
+      state.ui.notice = null;
       saveState();
       render();
     });
   });
 
+  // Login form — FIX: use trimmed values
   const loginForm = document.getElementById("loginForm");
   if (loginForm) {
     loginForm.addEventListener("submit", (e) => {
@@ -1253,18 +1129,19 @@ function bindEvents() {
     });
   }
 
+  // Signup form — FIX: validate before calling signup
   const signupForm = document.getElementById("signupForm");
   if (signupForm) {
     signupForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const fd = new FormData(signupForm);
       signup({
-        displayName: String(fd.get("displayName")).trim(),
-        username: String(fd.get("username")).trim(),
-        email: String(fd.get("email")).trim(),
-        password: String(fd.get("password")),
-        country: String(fd.get("country")),
-        bio: String(fd.get("bio")).trim()
+        displayName: fd.get("displayName"),
+        username: fd.get("username"),
+        email: fd.get("email"),
+        password: fd.get("password"),
+        country: fd.get("country"),
+        bio: fd.get("bio")
       });
     });
   }
@@ -1276,9 +1153,13 @@ function bindEvents() {
     });
   }
 
+  // Nav
   document.querySelectorAll("[data-nav]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.ui.appView = btn.dataset.nav;
+      if (btn.dataset.nav === "profile") {
+        state.ui.profileUserId = state.sessionUserId;
+      }
       saveState();
       render();
     });
@@ -1302,15 +1183,11 @@ function bindEvents() {
   }
 
   document.querySelectorAll("[data-follow]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      toggleFollow(btn.dataset.follow);
-    });
+    btn.addEventListener("click", () => toggleFollow(btn.dataset.follow));
   });
 
   document.querySelectorAll("[data-open-profile]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      goToProfile(btn.dataset.openProfile);
-    });
+    btn.addEventListener("click", () => goToProfile(btn.dataset.openProfile));
   });
 
   document.querySelectorAll("[data-go-dashboard]").forEach((btn) => {
@@ -1384,9 +1261,7 @@ function bindEvents() {
 
   const refreshSearchBtn = document.getElementById("refreshSearchBtn");
   if (refreshSearchBtn) {
-    refreshSearchBtn.addEventListener("click", () => {
-      render();
-    });
+    refreshSearchBtn.addEventListener("click", () => render());
   }
 
   const logoutBtn = document.getElementById("logoutBtn");
@@ -1405,4 +1280,5 @@ function bindEvents() {
   }
 }
 
+// ─── Boot ─────────────────────────────────────────────────────────────────────
 render();
