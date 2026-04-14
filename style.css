@@ -22,6 +22,25 @@
   --max-width: 480px;
 }
 
+body.light-theme {
+  --bg: #f6f7fb;
+  --bg-soft: #eef2f7;
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-2: rgba(248, 250, 253, 0.96);
+  --panel-3: rgba(240, 244, 249, 0.95);
+  --text: #121821;
+  --muted: #5f6b7b;
+  --line: rgba(18, 24, 33, 0.08);
+  --line-soft: rgba(18, 24, 33, 0.05);
+  --accent: #16c071;
+  --accent-2: #0fa45f;
+  --accent-soft: rgba(22, 192, 113, 0.12);
+  --gold: #c39111;
+  --silver: #7d8796;
+  --bronze: #9b6742;
+  --danger: #e0526b;
+  --shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -37,7 +56,8 @@ body {
   background:
     radial-gradient(circle at top center, rgba(22, 214, 124, 0.08), transparent 24%),
     radial-gradient(circle at 15% 10%, rgba(255, 214, 107, 0.05), transparent 18%),
-    linear-gradient(180deg, #0b0f14 0%, #07090d 100%);
+    linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+}
 }
 
 body {
