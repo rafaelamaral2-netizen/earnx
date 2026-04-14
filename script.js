@@ -1314,3 +1314,78 @@ function bindEvents() {
 }
 
 render();
+function applyTheme() {
+  const theme = state.ui.theme || "dark";
+  document.body.classList.toggle("light-theme", theme === "light");
+}
+
+function setTheme(theme) {
+  state.ui.theme = theme;
+  saveState();
+  applyTheme();
+  render();
+}
+function render() {
+  applyTheme();
+  const app = document.getElementById("app");
+  app.innerHTML = currentUser() ? appView() : authView();
+  bindEvents();
+}
+function normalizeEmail(email) {
+  return String(email).trim().toLowerCase();
+}
+function login(email, password) {
+  const cleanEmail = normalizeEmail(email);
+  const cleanPassword = String(password);
+
+  const user = state.users.find(
+    (u) =>
+      normalizeEmail(u.email) === cleanEmail &&
+      String(u.password) === cleanPassword
+  );
+
+  if (!user) {
+    setNotice("error", "Invalid email or password.");
+    return;
+  }
+
+  state.sessionUserId = user.id;
+  state.ui.appView = "home";
+  state.ui.profileUserId = user.id;
+  saveState();
+  render();
+}
+function signup(form) {
+  const cleanEmail = normalizeEmail(form.email);
+  const cleanUsername = String(form.username).trim().toLowerCase();
+
+  const exists = state.users.some(
+    (u) =>
+      normalizeEmail(u.email) === cleanEmail ||
+      String(u.username).trim().toLowerCase() === cleanUsername
+  );
+
+  if (exists) {
+    setNotice("error", "Email or username already exists.");
+    return;
+  }
+
+  const newUser = {
+    id: uid("user"),
+    displayName: String(form.displayName).trim(),
+    username: String(form.username).trim(),
+    email: cleanEmail,
+    password: String(form.password),
+    country: String(form.country),
+    bio: String(form.bio || "").trim() || "Creator on EarnX.",
+    createdAt: Date.now()
+  };
+
+  state.users.push(newUser);
+  state.sessionUserId = newUser.id;
+  state.ui.appView = "home";
+  state.ui.profileUserId = newUser.id;
+  saveState();
+  render();
+  setNotice("success", "Welcome to EarnX.");
+}
