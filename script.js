@@ -200,16 +200,11 @@ function toggleFollow(targetUserId) {
   saveState();
   render();
   setNotice("success", "Now following creator.");
-}
-
 function login(email, password) {
-  const cleanEmail = normalizeEmail(email);
-  const cleanPassword = String(password);
-
   const user = state.users.find(
     (u) =>
-      normalizeEmail(u.email) === cleanEmail &&
-      String(u.password) === cleanPassword
+      u.email.toLowerCase() === String(email).toLowerCase() &&
+      u.password === password
   );
 
   if (!user) {
@@ -222,16 +217,11 @@ function login(email, password) {
   state.ui.profileUserId = user.id;
   saveState();
   render();
-}
-
 function signup(form) {
-  const cleanEmail = normalizeEmail(form.email);
-  const cleanUsername = String(form.username).trim().toLowerCase();
-
   const exists = state.users.some(
     (u) =>
-      normalizeEmail(u.email) === cleanEmail ||
-      String(u.username).trim().toLowerCase() === cleanUsername
+      u.email.toLowerCase() === form.email.toLowerCase() ||
+      u.username.toLowerCase() === form.username.toLowerCase()
   );
 
   if (exists) {
@@ -241,12 +231,12 @@ function signup(form) {
 
   const newUser = {
     id: uid("user"),
-    displayName: String(form.displayName).trim(),
-    username: String(form.username).trim(),
-    email: cleanEmail,
-    password: String(form.password),
-    country: String(form.country),
-    bio: String(form.bio || "").trim() || "Creator on EarnX.",
+    displayName: form.displayName,
+    username: form.username,
+    email: form.email,
+    password: form.password,
+    country: form.country,
+    bio: form.bio || "Creator on EarnX.",
     createdAt: Date.now()
   };
 
