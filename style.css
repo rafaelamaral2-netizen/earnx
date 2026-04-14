@@ -687,3 +687,22 @@ a {
     grid-template-columns: 1fr;
   }
 }
+:root {
+  --bg: #07090d;
+  --text: #f3f6fb;
+  --panel: rgba(19, 26, 36, 0.9);
+  --muted: #93a0b4;
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #17d67c;
+  --accent-2: #0ea865;
+}
+
+body.light-theme {
+  --bg: #f6f7fb;
+  --text: #10151d;
+  --panel: rgba(255, 255, 255, 0.88);
+  --muted: #5d6878;
+  --line: rgba(16, 21, 29, 0.08);
+  --accent: #10b86b;
+  --accent-2: #0c9b59;
+}
