@@ -1,4 +1,4 @@
-const STORAGE_KEY = "earnx_app_v1";
+const STORAGE_KEY = "earnx_app_v2";
 
 const countries = [
   "Puerto Rico",
@@ -34,6 +34,7 @@ let state = loadState();
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return structuredClone(initialState);
+
   try {
     const parsed = JSON.parse(raw);
     return {
@@ -61,17 +62,26 @@ function setNotice(type, text) {
   state.ui.notice = { type, text };
   saveState();
   render();
+
   setTimeout(() => {
     if (state.ui.notice?.text === text) {
       state.ui.notice = null;
       saveState();
       render();
     }
-  }, 2500);
+  }, 2400);
 }
 
 function currentUser() {
-  return state.users.find(u => u.id === state.sessionUserId) || null;
+  return state.users.find((u) => u.id === state.sessionUserId) || null;
+}
+
+function escapeHtml(str = "") {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function getInitials(name = "") {
@@ -80,51 +90,31 @@ function getInitials(name = "") {
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map(w => w[0].toUpperCase())
+    .map((w) => w[0].toUpperCase())
     .join("") || "EX";
 }
 
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 function userPosts(userId) {
-  return state.posts.filter(p => p.userId === userId);
+  return state.posts.filter((p) => p.userId === userId);
 }
 
 function followerCount(userId) {
-  return state.follows.filter(f => f.followingId === userId).length;
+  return state.follows.filter((f) => f.followingId === userId).length;
 }
 
 function followingCount(userId) {
-  return state.follows.filter(f => f.followerId === userId).length;
+  return state.follows.filter((f) => f.followerId === userId).length;
 }
 
 function isFollowing(followerId, followingId) {
   return state.follows.some(
-    f => f.followerId === followerId && f.followingId === followingId
+    (f) => f.followerId === followerId && f.followingId === followingId
   );
-}
-
-function toggleFollow(targetUserId) {
-  const me = currentUser();
-  if (!me || me.id === targetUserId) return;
-
-  const existing = state.follows.findIndex(
-    f => f.followerId === me.id && f.followingId === targetUserId
-  );
-
-  if (existing > -1) {
-    state.follows.splice(existing, 1);
-    saveState();
-    render();
-    setNotice("success", "Unfollowed creator.");
-  } else {
-    state.follows.push({
-      id: uid("follow"),
-      followerId: me.id,
-      followingId: targetUserId
-    });
-    saveState();
-    render();
-    setNotice("success", "Now following creator.");
-  }
 }
 
 function scoreUser(user) {
@@ -138,20 +128,23 @@ function rankingUsers(scope = "global", viewerCountry = "Global") {
   let users = [...state.users];
 
   if (scope === "local") {
-    users = users.filter(u => u.country === viewerCountry);
+    users = users.filter((u) => u.country === viewerCountry);
   }
 
   return users
-    .map(u => ({ ...u, score: scoreUser(u) }))
+    .map((u) => ({ ...u, score: scoreUser(u) }))
     .sort((a, b) => b.score - a.score);
 }
 
-function getRankBadge(userId, scope = "global", viewerCountry = "Global") {
+function getRankPosition(userId, scope = "global", viewerCountry = "Global") {
   const ranked = rankingUsers(scope, viewerCountry);
-  const index = ranked.findIndex(u => u.id === userId);
-  if (index === -1) return null;
-  const pos = index + 1;
+  const index = ranked.findIndex((u) => u.id === userId);
+  return index === -1 ? null : index + 1;
+}
 
+function getRankBadge(userId, scope = "global", viewerCountry = "Global") {
+  const pos = getRankPosition(userId, scope, viewerCountry);
+  if (!pos) return null;
   if (pos === 1) return { label: "#1 Trending", className: "rank-1" };
   if (pos === 2) return { label: "#2 Trending", className: "rank-2" };
   if (pos === 3) return { label: "#3 Trending", className: "rank-3" };
@@ -160,23 +153,43 @@ function getRankBadge(userId, scope = "global", viewerCountry = "Global") {
 }
 
 function isAmbassador(userId, viewerCountry = "Global") {
-  const globalRank = rankingUsers("global");
-  const localRank = rankingUsers("local", viewerCountry);
-
-  const inGlobalTop3 = globalRank.slice(0, 3).some(u => u.id === userId);
-  const inLocalTop3 = localRank.slice(0, 3).some(u => u.id === userId);
-
-  return inGlobalTop3 || inLocalTop3;
+  const globalTop3 = rankingUsers("global").slice(0, 3).map((u) => u.id);
+  const localTop3 = rankingUsers("local", viewerCountry).slice(0, 3).map((u) => u.id);
+  return globalTop3.includes(userId) || localTop3.includes(userId);
 }
 
-function formatTime(ts) {
-  const date = new Date(ts);
-  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+function toggleFollow(targetUserId) {
+  const me = currentUser();
+  if (!me || me.id === targetUserId) return;
+
+  const index = state.follows.findIndex(
+    (f) => f.followerId === me.id && f.followingId === targetUserId
+  );
+
+  if (index >= 0) {
+    state.follows.splice(index, 1);
+    saveState();
+    render();
+    setNotice("success", "Unfollowed creator.");
+    return;
+  }
+
+  state.follows.push({
+    id: uid("follow"),
+    followerId: me.id,
+    followingId: targetUserId
+  });
+
+  saveState();
+  render();
+  setNotice("success", "Now following creator.");
 }
 
 function login(email, password) {
   const user = state.users.find(
-    u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    (u) =>
+      u.email.toLowerCase() === String(email).toLowerCase() &&
+      u.password === password
   );
 
   if (!user) {
@@ -186,14 +199,16 @@ function login(email, password) {
 
   state.sessionUserId = user.id;
   state.ui.appView = "home";
+  state.ui.profileUserId = user.id;
   saveState();
   render();
 }
 
 function signup(form) {
   const exists = state.users.some(
-    u => u.email.toLowerCase() === form.email.toLowerCase()
-      || u.username.toLowerCase() === form.username.toLowerCase()
+    (u) =>
+      u.email.toLowerCase() === form.email.toLowerCase() ||
+      u.username.toLowerCase() === form.username.toLowerCase()
   );
 
   if (exists) {
@@ -201,20 +216,21 @@ function signup(form) {
     return;
   }
 
-  const user = {
+  const newUser = {
     id: uid("user"),
+    displayName: form.displayName,
+    username: form.username,
     email: form.email,
     password: form.password,
-    username: form.username,
-    displayName: form.displayName,
     country: form.country,
     bio: form.bio || "Creator on EarnX.",
     createdAt: Date.now()
   };
 
-  state.users.push(user);
-  state.sessionUserId = user.id;
+  state.users.push(newUser);
+  state.sessionUserId = newUser.id;
   state.ui.appView = "home";
+  state.ui.profileUserId = newUser.id;
   saveState();
   render();
   setNotice("success", "Welcome to EarnX.");
@@ -246,16 +262,31 @@ function createPost(content, monetized) {
 
   saveState();
   state.ui.appView = "profile";
+  state.ui.profileUserId = me.id;
   render();
   setNotice("success", "Post published.");
 }
 
-function ensureProfileTarget() {
+function createMessage(toUserId, text) {
   const me = currentUser();
   if (!me) return;
-  if (!state.ui.profileUserId) {
-    state.ui.profileUserId = me.id;
+
+  if (!text.trim()) {
+    setNotice("error", "Message cannot be empty.");
+    return;
   }
+
+  state.messages.push({
+    id: uid("msg"),
+    fromUserId: me.id,
+    toUserId,
+    text: text.trim(),
+    createdAt: Date.now()
+  });
+
+  saveState();
+  render();
+  setNotice("success", "Message sent.");
 }
 
 function goToProfile(userId) {
@@ -265,25 +296,6 @@ function goToProfile(userId) {
   render();
 }
 
-function createMessage(toUserId, text) {
-  const me = currentUser();
-  if (!me) return;
-  if (!text.trim()) {
-    setNotice("error", "Message cannot be empty.");
-    return;
-  }
-  state.messages.push({
-    id: uid("msg"),
-    fromUserId: me.id,
-    toUserId,
-    text: text.trim(),
-    createdAt: Date.now()
-  });
-  saveState();
-  render();
-  setNotice("success", "Message sent.");
-}
-
 function renderNotice() {
   if (!state.ui.notice) return "";
   return `
@@ -291,14 +303,6 @@ function renderNotice() {
       ${escapeHtml(state.ui.notice.text)}
     </div>
   `;
-}
-
-function escapeHtml(str = "") {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 function authView() {
@@ -314,13 +318,16 @@ function authView() {
             <div class="small">Creator economy platform</div>
           </div>
         </div>
+
         <p class="brand-subtitle">
-          Build your presence, compete in public rankings, and monetize directly from your audience.
+          Build audience, compete for visibility, and turn attention into creator momentum.
         </p>
+
         ${renderNotice()}
+
         <div class="card auth-card">
           <h2 class="card-title">Create account</h2>
-          <p class="card-subtitle">Start with a real profile and a clean identity.</p>
+          <p class="card-subtitle">Start as a real creator with a clear identity.</p>
 
           <form id="signupForm">
             <div class="field">
@@ -335,18 +342,18 @@ function authView() {
 
             <div class="field">
               <label class="label">Email</label>
-              <input class="input" name="email" type="email" placeholder="you@example.com" required />
+              <input class="input" type="email" name="email" placeholder="you@example.com" required />
             </div>
 
             <div class="field">
               <label class="label">Password</label>
-              <input class="input" name="password" type="password" placeholder="••••••••" required />
+              <input class="input" type="password" name="password" placeholder="••••••••" required />
             </div>
 
             <div class="field">
               <label class="label">Country</label>
               <select class="select" name="country" required>
-                ${countries.map(c => `<option value="${c}">${c}</option>`).join("")}
+                ${countries.map((c) => `<option value="${c}">${c}</option>`).join("")}
               </select>
             </div>
 
@@ -359,7 +366,7 @@ function authView() {
           </form>
 
           <div class="auth-links">
-            <button class="btn btn-ghost" data-auth-view="login" type="button">Already have an account?</button>
+            <button class="btn btn-ghost" type="button" data-auth-view="login">Already have an account?</button>
           </div>
         </div>
       </div>
@@ -376,10 +383,12 @@ function authView() {
             <div class="small">Recover access</div>
           </div>
         </div>
+
         ${renderNotice()}
+
         <div class="card auth-card">
           <h2 class="card-title">Forgot password</h2>
-          <p class="card-subtitle">This static frontend does not send emails yet. Use your saved credentials.</p>
+          <p class="card-subtitle">This static build does not send recovery emails yet.</p>
 
           <div class="field">
             <label class="label">Email</label>
@@ -389,7 +398,7 @@ function authView() {
           <button class="btn btn-secondary" type="button" id="fakeRecoveryBtn">Continue</button>
 
           <div class="auth-links">
-            <button class="btn btn-ghost" data-auth-view="login" type="button">Back to login</button>
+            <button class="btn btn-ghost" type="button" data-auth-view="login">Back to login</button>
           </div>
         </div>
       </div>
@@ -402,34 +411,37 @@ function authView() {
         <div class="brand-badge">X</div>
         <div>
           <div class="brand-title">EarnX</div>
-          <div class="small">Where creators compete and monetize</div>
+          <div class="small">Status-driven creator platform</div>
         </div>
       </div>
+
       <p class="brand-subtitle">
-        A premium social platform for creators building status, audience, and direct fan support.
+        A premium social platform built around creator ambition, audience reach, and public ranking momentum.
       </p>
+
       ${renderNotice()}
+
       <div class="card auth-card">
         <h2 class="card-title">Login</h2>
-        <p class="card-subtitle">Access your creator account.</p>
+        <p class="card-subtitle">Enter your creator account.</p>
 
         <form id="loginForm">
           <div class="field">
             <label class="label">Email</label>
-            <input class="input" name="email" type="email" placeholder="you@example.com" required />
+            <input class="input" type="email" name="email" placeholder="you@example.com" required />
           </div>
 
           <div class="field">
             <label class="label">Password</label>
-            <input class="input" name="password" type="password" placeholder="••••••••" required />
+            <input class="input" type="password" name="password" placeholder="••••••••" required />
           </div>
 
           <button class="btn btn-primary" type="submit">Login</button>
         </form>
 
         <div class="auth-links">
-          <button class="btn btn-ghost" data-auth-view="forgot" type="button">Forgot password</button>
-          <button class="btn btn-ghost" data-auth-view="signup" type="button">Create account</button>
+          <button class="btn btn-ghost" type="button" data-auth-view="forgot">Forgot password</button>
+          <button class="btn btn-ghost" type="button" data-auth-view="signup">Create account</button>
         </div>
       </div>
     </div>
@@ -437,97 +449,159 @@ function authView() {
 }
 
 function appView() {
-  ensureProfileTarget();
-
   return `
     <div class="shell">
-      <main class="screen">
-        ${renderNotice()}
-        ${renderCurrentAppScreen()}
-      </main>
+      ${renderNotice()}
+      ${renderCurrentScreen()}
       ${bottomNav()}
     </div>
   `;
 }
 
-function renderCurrentAppScreen() {
-  const view = state.ui.appView;
-  if (view === "search") return renderSearchScreen();
-  if (view === "create") return renderCreateScreen();
-  if (view === "messages") return renderMessagesScreen();
-  if (view === "profile") return renderProfileScreen();
-  if (view === "settings") return renderSettingsScreen();
-  if (view === "dashboard") return renderDashboardScreen();
-  return renderHomeScreen();
+function renderCurrentScreen() {
+  switch (state.ui.appView) {
+    case "search":
+      return renderSearchScreen();
+    case "create":
+      return renderCreateScreen();
+    case "messages":
+      return renderMessagesScreen();
+    case "profile":
+      return renderProfileScreen();
+    case "settings":
+      return renderSettingsScreen();
+    case "dashboard":
+      return renderDashboardScreen();
+    default:
+      return renderHomeScreen();
+  }
 }
 
 function renderHomeScreen() {
   const me = currentUser();
   const followingIds = state.follows
-    .filter(f => f.followerId === me.id)
-    .map(f => f.followingId);
+    .filter((f) => f.followerId === me.id)
+    .map((f) => f.followingId);
 
-  const feedPosts = state.posts.filter(p => followingIds.includes(p.userId));
+  const feed = state.posts.filter((p) => followingIds.includes(p.userId));
+  const rising = rankingUsers("global").filter((u) => u.id !== me.id).slice(0, 3);
 
   return `
     <div class="topbar">
       <div>
-        <div class="small">Home</div>
-        <h1>EarnX</h1>
+        <span class="eyebrow">Home</span>
+        <h1>Following & momentum</h1>
       </div>
       <button class="icon-btn" id="openSettingsBtn">⚙️</button>
     </div>
 
     <div class="card hero">
-      <h2>Build status. Grow reach. Stay visible.</h2>
-      <p>Your feed shows creators you actually follow. Rankings stay public. Earnings stay private.</p>
+      <h2>Follow creators. Watch movement. Build presence.</h2>
+      <p>Your feed stays real. Rankings stay public. Private earnings stay protected.</p>
     </div>
 
-    ${
-      feedPosts.length === 0
-        ? `
-          <div class="card empty-state">
-            <h3>Follow creators to start building your feed</h3>
-            <p>Your home feed stays clean until you connect with real creators inside the platform.</p>
-            <button class="btn btn-primary" id="goDiscoverBtn">Discover creators</button>
+    <section class="section">
+      <div class="section-head">
+        <h3>Momentum</h3>
+        <span class="section-meta">Global creators gaining status</span>
+      </div>
+
+      <div class="stack">
+        ${
+          rising.length
+            ? rising.map(renderMomentumCard).join("")
+            : `
+              <div class="panel empty-state">
+                <h3>No creator momentum yet</h3>
+                <p>As real creators publish and gain attention, rising movement will appear here.</p>
+              </div>
+            `
+        }
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h3>Following feed</h3>
+        <span class="section-meta">${feed.length} posts</span>
+      </div>
+
+      ${
+        feed.length
+          ? `<div class="feed-list">${feed.map(renderPostCard).join("")}</div>`
+          : `
+            <div class="panel empty-state">
+              <h3>Follow creators to start building your feed</h3>
+              <p>Your home stays clean until you choose who deserves your attention.</p>
+              <button class="btn btn-primary" id="goDiscoverBtn">Go to discover</button>
+            </div>
+          `
+      }
+    </section>
+  `;
+}
+
+function renderMomentumCard(user) {
+  const me = currentUser();
+  const globalPos = getRankPosition(user.id, "global", me.country);
+  const ambassador = isAmbassador(user.id, me.country);
+
+  return `
+    <div class="momentum-card">
+      <div class="momentum-head">
+        <div class="avatar">${getInitials(user.displayName)}</div>
+        <div class="name-block">
+          <div class="name-line">
+            <h4>${escapeHtml(user.displayName)}</h4>
+            ${globalPos && globalPos <= 3 ? `<span class="badge rank-${globalPos}">#${globalPos}</span>` : ""}
+            ${ambassador ? `<span class="badge ambassador">Ambassador</span>` : ""}
           </div>
-        `
-        : `
-          <div class="feed-list">
-            ${feedPosts.map(renderPostCard).join("")}
-          </div>
-        `
-    }
+          <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
+        </div>
+      </div>
+
+      <div class="post-actions">
+        <span class="chip">Trend Score ${scoreUser(user)}</span>
+        <span class="chip">${followerCount(user.id)} followers</span>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-secondary" data-open-profile="${user.id}">View profile</button>
+        <button class="btn btn-primary" data-follow="${user.id}">
+          ${isFollowing(me.id, user.id) ? "Following" : "Follow"}
+        </button>
+      </div>
+    </div>
   `;
 }
 
 function renderPostCard(post) {
-  const user = state.users.find(u => u.id === post.userId);
   const me = currentUser();
-  const globalBadge = getRankBadge(user.id, "global", me?.country || "Global");
-  const ambassador = isAmbassador(user.id, me?.country || "Global");
+  const user = state.users.find((u) => u.id === post.userId);
+  const badge = getRankBadge(user.id, "global", me.country);
+  const ambassador = isAmbassador(user.id, me.country);
 
   return `
-    <div class="post-card card">
+    <div class="post-card">
       <div class="post-head">
         <div class="avatar">${getInitials(user.displayName)}</div>
         <div class="name-block">
           <div class="name-line">
             <h4>${escapeHtml(user.displayName)}</h4>
-            ${globalBadge ? `<span class="badge ${globalBadge.className}">${escapeHtml(globalBadge.label)}</span>` : ""}
+            ${badge ? `<span class="badge ${badge.className}">${escapeHtml(badge.label)}</span>` : ""}
             ${ambassador ? `<span class="badge ambassador">Ambassador</span>` : ""}
           </div>
-          <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)} · ${formatTime(post.createdAt)}</div>
+          <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)} · ${formatDate(post.createdAt)}</div>
         </div>
       </div>
 
       <div class="post-content">${escapeHtml(post.content)}</div>
 
       <div class="post-actions">
-        <span class="action-chip">♥ Support</span>
-        <span class="action-chip">💬 Comment</span>
-        <span class="action-chip">↗ Share</span>
-        ${post.monetized ? `<span class="action-chip">💸 Monetized</span>` : ""}
+        <span class="chip">♥ Support</span>
+        <span class="chip">💬 Comment</span>
+        <span class="chip">↗ Share</span>
+        ${post.monetized ? `<span class="chip">💸 Support enabled</span>` : ""}
       </div>
     </div>
   `;
@@ -535,132 +609,146 @@ function renderPostCard(post) {
 
 function renderSearchScreen() {
   const me = currentUser();
-  const query = (state.ui.searchQuery || "").toLowerCase().trim();
   const tab = state.ui.discoverTab;
+  const query = state.ui.searchQuery.trim().toLowerCase();
 
-  const localUsers = rankingUsers("local", me.country);
-  const globalUsers = rankingUsers("global");
+  const global = rankingUsers("global");
+  const local = rankingUsers("local", me.country);
+  const ambassadors = global.filter((u) => isAmbassador(u.id, me.country));
+  const rising = global.slice(0, 10);
 
-  let list = tab === "local" ? localUsers : globalUsers;
-
-  if (tab === "ambassadors") {
-    list = globalUsers.filter(u => isAmbassador(u.id, me.country));
-  }
-
-  if (tab === "trending") {
-    list = globalUsers.slice(0, 10);
-  }
+  let list = global;
+  if (tab === "local") list = local;
+  if (tab === "trending") list = rising;
+  if (tab === "ambassadors") list = ambassadors;
 
   if (query) {
-    list = list.filter(u =>
-      u.displayName.toLowerCase().includes(query) ||
-      u.username.toLowerCase().includes(query) ||
-      u.country.toLowerCase().includes(query)
+    list = list.filter(
+      (u) =>
+        u.displayName.toLowerCase().includes(query) ||
+        u.username.toLowerCase().includes(query) ||
+        u.country.toLowerCase().includes(query)
     );
   }
 
   return `
     <div class="topbar">
       <div>
-        <div class="small">Discover</div>
-        <h1>Search & Rankings</h1>
+        <span class="eyebrow">Discover</span>
+        <h1>Global, local, ambassadors</h1>
       </div>
       <button class="icon-btn" id="refreshSearchBtn">↻</button>
     </div>
 
     <div class="searchbar">
-      <input class="input" id="searchInput" placeholder="Search creators, countries, usernames..." value="${escapeHtml(state.ui.searchQuery || "")}" />
+      <input class="input" id="searchInput" placeholder="Search creators, usernames, countries..." value="${escapeHtml(state.ui.searchQuery)}" />
     </div>
 
-    <div class="app-tabs">
-      <button class="app-tab ${tab === "global" ? "active" : ""}" data-discover-tab="global">Global</button>
-      <button class="app-tab ${tab === "local" ? "active" : ""}" data-discover-tab="local">Local</button>
-      <button class="app-tab ${tab === "trending" ? "active" : ""}" data-discover-tab="trending">Trending</button>
-      <button class="app-tab ${tab === "ambassadors" ? "active" : ""}" data-discover-tab="ambassadors">Ambassadors</button>
+    <div class="tabs">
+      <button class="tab ${tab === "global" ? "active" : ""}" data-discover-tab="global">Global</button>
+      <button class="tab ${tab === "local" ? "active" : ""}" data-discover-tab="local">Local</button>
+      <button class="tab ${tab === "trending" ? "active" : ""}" data-discover-tab="trending">Trending</button>
+      <button class="tab ${tab === "ambassadors" ? "active" : ""}" data-discover-tab="ambassadors">Ambassadors</button>
     </div>
 
-    <div class="section-title">
-      <h3>Top positions</h3>
-      <span>${tab === "local" ? me.country : "Global"} visibility</span>
-    </div>
+    <section class="section">
+      <div class="section-head">
+        <h3>Top 3 global</h3>
+        <span class="section-meta">Public status</span>
+      </div>
+      <div class="rank-grid">
+        ${renderTopCards(global, me.country)}
+      </div>
+    </section>
 
-    <div class="grid-2">
-      ${renderTopRankCards(tab === "local" ? localUsers : globalUsers, me.country)}
-    </div>
+    <section class="section">
+      <div class="section-head">
+        <h3>Top 3 in ${escapeHtml(me.country)}</h3>
+        <span class="section-meta">Local visibility</span>
+      </div>
+      <div class="rank-grid">
+        ${renderTopCards(local, me.country)}
+      </div>
+    </section>
 
-    <div class="section-title">
-      <h3>${tab === "ambassadors" ? "EarnX Ambassadors" : "Creators"}</h3>
-      <span>${list.length} results</span>
-    </div>
+    <section class="section">
+      <div class="section-head">
+        <h3>${tabLabel(tab)}</h3>
+        <span class="section-meta">${list.length} creators</span>
+      </div>
 
-    ${
-      list.length === 0
-        ? `
-          <div class="card empty-state">
-            <h3>No creators found yet</h3>
-            <p>As real accounts join EarnX, discovery becomes more powerful across countries and global rankings.</p>
-          </div>
-        `
-        : `
-          <div class="list">
-            ${list.map(u => renderCreatorCard(u, me.country)).join("")}
-          </div>
-        `
-    }
+      ${
+        list.length
+          ? `<div class="list">${list.map((u) => renderCreatorCard(u)).join("")}</div>`
+          : `
+            <div class="panel empty-state">
+              <h3>No creators found yet</h3>
+              <p>Discovery becomes more powerful as real creator activity grows across countries and global rankings.</p>
+            </div>
+          `
+      }
+    </section>
   `;
 }
 
-function renderTopRankCards(users, viewerCountry) {
-  const top3 = users.slice(0, 3);
+function tabLabel(tab) {
+  if (tab === "local") return "Local creators";
+  if (tab === "trending") return "Trending now";
+  if (tab === "ambassadors") return "EarnX ambassadors";
+  return "Global creators";
+}
 
-  if (top3.length === 0) {
+function renderTopCards(users, viewerCountry) {
+  const top = users.slice(0, 3);
+  if (!top.length) {
     return `
-      <div class="rank-card card">
+      <div class="rank-card">
         <div class="rank-number gold">#1</div>
-        <div class="meta">No live ranking yet</div>
+        <div class="muted">Waiting for creator movement</div>
       </div>
-      <div class="rank-card card">
+      <div class="rank-card">
         <div class="rank-number silver">#2</div>
-        <div class="meta">Waiting for creator activity</div>
+        <div class="muted">No public ranking yet</div>
       </div>
     `;
   }
 
-  return top3.map((u, idx) => {
-    const tone = idx === 0 ? "gold" : idx === 1 ? "silver" : "bronze";
-    const badgeText = idx === 0 ? "Crown position" : idx === 1 ? "Second position" : "Third position";
-
+  return top.map((u, i) => {
+    const tone = i === 0 ? "gold" : i === 1 ? "silver" : "bronze";
     return `
-      <div class="rank-card card">
-        <div class="rank-number ${tone}">#${idx + 1}</div>
+      <div class="rank-card">
+        <div class="rank-number ${tone}">#${i + 1}</div>
         <div class="name-line">
           <h4>${escapeHtml(u.displayName)}</h4>
         </div>
-        <div class="meta">@${escapeHtml(u.username)} · ${escapeHtml(u.country)}</div>
-        <div class="hr"></div>
-        <div class="small">${badgeText}</div>
-        ${isAmbassador(u.id, viewerCountry) ? `<div style="margin-top:10px;"><span class="badge ambassador">Ambassador</span></div>` : ""}
+        <div class="handle">@${escapeHtml(u.username)} · ${escapeHtml(u.country)}</div>
+        <div class="mini-line"></div>
+        <div class="post-actions">
+          <span class="chip">Score ${scoreUser(u)}</span>
+          ${isAmbassador(u.id, viewerCountry) ? `<span class="badge ambassador">Ambassador</span>` : ""}
+        </div>
       </div>
     `;
   }).join("");
 }
 
-function renderCreatorCard(user, viewerCountry) {
+function renderCreatorCard(user) {
   const me = currentUser();
-  const own = me.id === user.id;
+  const own = user.id === me.id;
   const followed = isFollowing(me.id, user.id);
-  const badge = getRankBadge(user.id, "global", viewerCountry);
-  const ambassador = isAmbassador(user.id, viewerCountry);
+  const globalBadge = getRankBadge(user.id, "global", me.country);
+  const localBadge = getRankBadge(user.id, "local", me.country);
+  const ambassador = isAmbassador(user.id, me.country);
 
   return `
-    <div class="creator-card card">
+    <div class="creator-card">
       <div class="creator-head">
         <div class="avatar">${getInitials(user.displayName)}</div>
-        <div class="name-block" style="flex:1;">
+        <div class="name-block">
           <div class="name-line">
             <h4>${escapeHtml(user.displayName)}</h4>
-            ${badge ? `<span class="badge ${badge.className}">${escapeHtml(badge.label)}</span>` : ""}
-            ${ambassador ? `<span class="badge ambassador">${user.country === viewerCountry ? "Country Ambassador" : "Global Ambassador"}</span>` : ""}
+            ${globalBadge ? `<span class="badge ${globalBadge.className}">${escapeHtml(globalBadge.label)}</span>` : ""}
+            ${ambassador ? `<span class="badge ambassador">${user.country === me.country ? "Country Ambassador" : "Global Ambassador"}</span>` : ""}
           </div>
           <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
         </div>
@@ -668,25 +756,15 @@ function renderCreatorCard(user, viewerCountry) {
 
       <div class="profile-bio">${escapeHtml(user.bio || "Creator on EarnX.")}</div>
 
-      <div class="profile-meta" style="margin-top:14px;">
-        <div class="profile-stat">
-          <strong>${followerCount(user.id)}</strong>
-          <span>Followers</span>
-        </div>
-        <div class="profile-stat">
-          <strong>${userPosts(user.id).length}</strong>
-          <span>Posts</span>
-        </div>
-        <div class="profile-stat">
-          <strong>${scoreUser(user)}</strong>
-          <span>Trend Score</span>
-        </div>
+      <div class="post-actions">
+        <span class="chip">${followerCount(user.id)} followers</span>
+        <span class="chip">${userPosts(user.id).length} posts</span>
+        <span class="chip">Score ${scoreUser(user)}</span>
+        ${localBadge ? `<span class="chip">${escapeHtml(localBadge.label)} local</span>` : ""}
       </div>
 
-      <div class="row" style="margin-top:14px;">
-        <button class="btn btn-secondary" data-open-profile="${user.id}">
-          View profile
-        </button>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-secondary" data-open-profile="${user.id}">View profile</button>
         ${
           own
             ? `<button class="btn btn-primary" data-go-dashboard="1">Dashboard</button>`
@@ -701,36 +779,27 @@ function renderCreateScreen() {
   return `
     <div class="topbar">
       <div>
-        <div class="small">Create</div>
-        <h1>Publish content</h1>
+        <span class="eyebrow">Create</span>
+        <h1>Publish with intention</h1>
       </div>
       <div></div>
     </div>
 
-    <div class="card auth-card">
+    <div class="card content-card">
       <h2 class="card-title">New post</h2>
-      <p class="card-subtitle">Speak to your audience clearly. Status grows from consistency.</p>
+      <p class="card-subtitle">Build consistency, visibility, and support momentum.</p>
 
       <form id="createPostForm">
         <div class="field">
           <label class="label">Caption</label>
-          <textarea class="textarea" name="content" placeholder="Share an update, drop a thought, or publish something your audience can support."></textarea>
-        </div>
-
-        <div class="field">
-          <label class="label">Visibility</label>
-          <select class="select" name="visibility">
-            <option value="public">Public</option>
-          </select>
+          <textarea class="textarea" name="content" placeholder="Publish a thought, an update, or a message to your audience."></textarea>
         </div>
 
         <div class="field">
           <label class="label">Monetization</label>
-          <div class="row">
-            <label class="action-chip" style="justify-content:center; padding:14px;">
-              <input type="checkbox" name="monetized" style="margin-right:8px;"> Enable support
-            </label>
-          </div>
+          <label class="chip" style="padding:14px; justify-content:center;">
+            <input type="checkbox" name="monetized" style="margin-right:8px;"> Enable support button
+          </label>
         </div>
 
         <button class="btn btn-primary" type="submit">Publish</button>
@@ -741,105 +810,111 @@ function renderCreateScreen() {
 
 function renderMessagesScreen() {
   const me = currentUser();
-  const inboxUsers = state.users.filter(u => u.id !== me.id);
+  const users = state.users.filter((u) => u.id !== me.id);
   const recent = state.messages
-    .filter(m => m.fromUserId === me.id || m.toUserId === me.id)
+    .filter((m) => m.fromUserId === me.id || m.toUserId === me.id)
     .sort((a, b) => b.createdAt - a.createdAt);
 
   return `
     <div class="topbar">
       <div>
-        <div class="small">Messages</div>
-        <h1>Inbox</h1>
+        <span class="eyebrow">Messages</span>
+        <h1>Private creator communication</h1>
       </div>
       <div></div>
     </div>
 
     ${
-      inboxUsers.length === 0
+      users.length
         ? `
-          <div class="card empty-state">
-            <h3>No messages yet</h3>
-            <p>As more creators join EarnX, direct communication starts here.</p>
-          </div>
-        `
-        : `
-          <div class="section-title">
-            <h3>Quick message</h3>
-            <span>Direct creator contact</span>
-          </div>
-          <div class="card auth-card">
+          <div class="card content-card">
+            <h2 class="card-title">Quick message</h2>
+            <p class="card-subtitle">Direct contact between creators and supporters starts here.</p>
+
             <form id="messageForm">
               <div class="field">
                 <label class="label">Send to</label>
                 <select class="select" name="toUserId">
-                  ${inboxUsers.map(u => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${escapeHtml(u.username)})</option>`).join("")}
+                  ${users.map((u) => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${escapeHtml(u.username)})</option>`).join("")}
                 </select>
               </div>
+
               <div class="field">
                 <label class="label">Message</label>
                 <textarea class="textarea" name="text" placeholder="Write a direct message."></textarea>
               </div>
+
               <button class="btn btn-primary" type="submit">Send message</button>
             </form>
           </div>
         `
+        : ""
     }
 
-    <div class="section-title">
-      <h3>Recent activity</h3>
-      <span>${recent.length} messages</span>
+    <section class="section">
+      <div class="section-head">
+        <h3>Recent inbox activity</h3>
+        <span class="section-meta">${recent.length} messages</span>
+      </div>
+
+      ${
+        recent.length
+          ? `
+            <div class="list">
+              ${recent.map(renderMessageCard).join("")}
+            </div>
+          `
+          : `
+            <div class="panel empty-state">
+              <h3>Your inbox is quiet</h3>
+              <p>As creator communication begins, private interactions will appear here.</p>
+            </div>
+          `
+      }
+    </section>
+  `;
+}
+
+function renderMessageCard(msg) {
+  const me = currentUser();
+  const from = state.users.find((u) => u.id === msg.fromUserId);
+  const to = state.users.find((u) => u.id === msg.toUserId);
+  const other = msg.fromUserId === me.id ? to : from;
+
+  return `
+    <div class="message-card">
+      <div class="message-head">
+        <div class="avatar">${getInitials(other.displayName)}</div>
+        <div class="name-block">
+          <div class="name-line">
+            <h4>${escapeHtml(other.displayName)}</h4>
+          </div>
+          <div class="handle">${msg.fromUserId === me.id ? "To" : "From"} @${escapeHtml(other.username)} · ${formatDate(msg.createdAt)}</div>
+        </div>
+      </div>
+
+      <div class="post-content">${escapeHtml(msg.text)}</div>
     </div>
-
-    ${
-      recent.length === 0
-        ? `
-          <div class="card empty-state">
-            <h3>Your inbox is quiet</h3>
-            <p>When creator conversations begin, they will appear here in a clean and private thread experience.</p>
-          </div>
-        `
-        : `
-          <div class="list">
-            ${recent.map(msg => {
-              const from = state.users.find(u => u.id === msg.fromUserId);
-              const to = state.users.find(u => u.id === msg.toUserId);
-              const other = msg.fromUserId === me.id ? to : from;
-              return `
-                <div class="message-card card">
-                  <div class="message-head">
-                    <div class="avatar">${getInitials(other.displayName)}</div>
-                    <div class="name-block">
-                      <div class="name-line">
-                        <h4>${escapeHtml(other.displayName)}</h4>
-                      </div>
-                      <div class="handle">${msg.fromUserId === me.id ? "To" : "From"} @${escapeHtml(other.username)} · ${formatTime(msg.createdAt)}</div>
-                    </div>
-                  </div>
-                  <div class="post-content">${escapeHtml(msg.text)}</div>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        `
-    }
   `;
 }
 
 function renderProfileScreen() {
   const me = currentUser();
-  const user = state.users.find(u => u.id === state.ui.profileUserId) || me;
+  const user =
+    state.users.find((u) => u.id === state.ui.profileUserId) || me;
+
   const own = user.id === me.id;
   const posts = userPosts(user.id);
-  const badge = getRankBadge(user.id, "global", me.country);
-  const localBadge = getRankBadge(user.id, "local", me.country);
+  const globalPos = getRankPosition(user.id, "global", me.country);
+  const localPos = getRankPosition(user.id, "local", me.country);
   const ambassador = isAmbassador(user.id, me.country);
+  const followed = isFollowing(me.id, user.id);
 
   return `
     <div class="topbar">
       <div>
-        <div class="small">Profile</div>
-        <h1>${own ? "Your profile" : "Creator profile"}</h1>
+        <span class="eyebrow">Profile</span>
+        <h1>${own ? "Identity & business" : "Creator identity"}</h1>
       </div>
       <button class="icon-btn" id="profileSettingsBtn">⚙️</button>
     </div>
@@ -852,9 +927,10 @@ function renderProfileScreen() {
             <h3>${escapeHtml(user.displayName)}</h3>
           </div>
           <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div>
-          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            ${badge ? `<span class="badge ${badge.className}">${escapeHtml(badge.label)}</span>` : ""}
-            ${localBadge ? `<span class="badge">${escapeHtml(localBadge.label)} Local</span>` : ""}
+
+          <div class="post-actions" style="margin-top:10px;">
+            ${globalPos ? `<span class="badge ${globalPos <= 3 ? `rank-${globalPos}` : ""}">Global #${globalPos}</span>` : ""}
+            ${localPos ? `<span class="chip">${escapeHtml(user.country)} #${localPos}</span>` : ""}
             ${ambassador ? `<span class="badge ambassador">${user.country === me.country ? "Country Ambassador" : "Global Ambassador"}</span>` : ""}
           </div>
         </div>
@@ -862,57 +938,143 @@ function renderProfileScreen() {
 
       <div class="profile-bio">${escapeHtml(user.bio || "Creator on EarnX.")}</div>
 
-      <div class="profile-meta">
+      <div class="profile-stats">
         <div class="profile-stat">
           <strong>${followerCount(user.id)}</strong>
-          <span>Followers</span>
+          <span class="small">Followers</span>
         </div>
         <div class="profile-stat">
           <strong>${followingCount(user.id)}</strong>
-          <span>Following</span>
+          <span class="small">Following</span>
         </div>
         <div class="profile-stat">
           <strong>${posts.length}</strong>
-          <span>Posts</span>
+          <span class="small">Posts</span>
         </div>
       </div>
 
-      <div class="row" style="margin-top:14px;">
+      <div class="profile-actions row">
         ${
           own
             ? `
-              <button class="btn btn-primary" data-go-dashboard="1">Private dashboard</button>
+              <button class="btn btn-primary" data-go-dashboard="1">Creator Studio</button>
               <button class="btn btn-secondary" data-go-settings="1">Settings</button>
             `
             : `
-              <button class="btn btn-primary" data-follow="${user.id}">
-                ${isFollowing(me.id, user.id) ? "Following" : "Follow"}
-              </button>
+              <button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>
               <button class="btn btn-secondary" data-message-user="${user.id}">Message</button>
             `
         }
       </div>
     </div>
 
-    <div class="section-title">
-      <h3>${own ? "Your posts" : "Creator posts"}</h3>
-      <span>${posts.length} total</span>
+    <section class="section">
+      <div class="section-head">
+        <h3>Status highlights</h3>
+        <span class="section-meta">Public perception</span>
+      </div>
+
+      <div class="highlight-strip">
+        <div class="highlight-card">
+          <strong>${globalPos ? `#${globalPos}` : "—"}</strong>
+          <span class="small">Global rank position</span>
+        </div>
+        <div class="highlight-card">
+          <strong>${scoreUser(user)}</strong>
+          <span class="small">Trend score</span>
+        </div>
+        <div class="highlight-card">
+          <strong>${ambassador ? "Yes" : "No"}</strong>
+          <span class="small">Ambassador status</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h3>${own ? "Published content" : "Creator content"}</h3>
+        <span class="section-meta">${posts.length} posts</span>
+      </div>
+
+      ${
+        posts.length
+          ? `<div class="feed-list">${posts.map(renderPostCard).join("")}</div>`
+          : `
+            <div class="panel empty-state">
+              <h3>No posts yet</h3>
+              <p>${own ? "Your content will appear here as you publish." : "This creator has not published anything yet."}</p>
+            </div>
+          `
+      }
+    </section>
+  `;
+}
+
+function renderDashboardScreen() {
+  const me = currentUser();
+  const posts = userPosts(me.id);
+  const globalPos = getRankPosition(me.id, "global", me.country);
+  const localPos = getRankPosition(me.id, "local", me.country);
+
+  return `
+    <div class="topbar">
+      <div>
+        <span class="eyebrow">Creator Studio</span>
+        <h1>Private growth & monetization</h1>
+      </div>
+      <div></div>
     </div>
 
-    ${
-      posts.length === 0
-        ? `
-          <div class="card empty-state">
-            <h3>No posts yet</h3>
-            <p>${own ? "Your published content will appear here." : "This creator has not published anything yet."}</p>
-          </div>
-        `
-        : `
-          <div class="feed-list">
-            ${posts.map(renderPostCard).join("")}
-          </div>
-        `
-    }
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <strong>$0.00</strong>
+        <span>Earnings summary</span>
+      </div>
+      <div class="kpi-card">
+        <strong>${followerCount(me.id)}</strong>
+        <span>Audience size</span>
+      </div>
+      <div class="kpi-card">
+        <strong>${posts.length}</strong>
+        <span>Published posts</span>
+      </div>
+      <div class="kpi-card">
+        <strong>${scoreUser(me)}</strong>
+        <span>Trend score</span>
+      </div>
+      <div class="kpi-card">
+        <strong>${globalPos || "—"}</strong>
+        <span>Global rank</span>
+      </div>
+      <div class="kpi-card">
+        <strong>${localPos || "—"}</strong>
+        <span>${escapeHtml(me.country)} rank</span>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <h3>Private business blocks</h3>
+        <span class="section-meta">Only visible to creator</span>
+      </div>
+
+      <div class="list">
+        <div class="setting-card">
+          <div class="card-title">Monetization performance</div>
+          <p class="card-subtitle">Future area for fan support, subscriptions, conversion, and payout metrics.</p>
+        </div>
+
+        <div class="setting-card">
+          <div class="card-title">Audience analytics</div>
+          <p class="card-subtitle">Track reach, retention, and support behavior without exposing private numbers publicly.</p>
+        </div>
+
+        <div class="setting-card">
+          <div class="card-title">Ranking movement</div>
+          <p class="card-subtitle">See how close you are to the Top 10, Top 3, and ambassador status.</p>
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -922,107 +1084,39 @@ function renderSettingsScreen() {
   return `
     <div class="topbar">
       <div>
-        <div class="small">Settings</div>
+        <span class="eyebrow">Settings</span>
         <h1>Account & privacy</h1>
       </div>
       <div></div>
     </div>
 
     <div class="list">
-      <div class="setting-card card">
+      <div class="setting-card">
         <div class="card-title">Profile access</div>
-        <p class="card-subtitle">Edit profile, public identity, and creator presentation.</p>
+        <p class="card-subtitle">Manage public identity, creator positioning, and audience-facing presentation.</p>
         <button class="btn btn-secondary" data-open-profile="${me.id}">Open profile</button>
       </div>
 
-      <div class="setting-card card">
-        <div class="card-title">Private dashboard</div>
-        <p class="card-subtitle">Your earnings, analytics, ranking movement, and monetization stay visible only to you.</p>
-        <button class="btn btn-primary" data-go-dashboard="1">Open dashboard</button>
+      <div class="setting-card">
+        <div class="card-title">Creator Studio</div>
+        <p class="card-subtitle">Access your private growth, monetization, and ranking movement.</p>
+        <button class="btn btn-primary" data-go-dashboard="1">Open Creator Studio</button>
       </div>
 
-      <div class="setting-card card">
+      <div class="setting-card">
         <div class="card-title">Notifications</div>
-        <p class="card-subtitle">Ranking changes, new followers, support events, and private messages.</p>
-        <div class="small">Frontend UI only for now.</div>
+        <p class="card-subtitle">Reserved for follower changes, ranking alerts, and private message activity.</p>
       </div>
 
-      <div class="setting-card card">
+      <div class="setting-card">
         <div class="card-title">Payout methods</div>
-        <p class="card-subtitle">Reserved for backend integration.</p>
-        <div class="small">Private creator-only financial data will plug in here.</div>
+        <p class="card-subtitle">Private creator financial configuration will connect here later.</p>
       </div>
 
-      <div class="setting-card card">
+      <div class="setting-card">
         <div class="card-title">Logout</div>
-        <p class="card-subtitle">Securely exit your EarnX session.</p>
+        <p class="card-subtitle">Exit your EarnX session securely.</p>
         <button class="btn btn-secondary" id="logoutBtn">Logout</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderDashboardScreen() {
-  const me = currentUser();
-  const posts = userPosts(me.id);
-  const rankGlobal = rankingUsers("global").findIndex(u => u.id === me.id) + 1;
-  const rankLocal = rankingUsers("local", me.country).findIndex(u => u.id === me.id) + 1;
-
-  return `
-    <div class="topbar">
-      <div>
-        <div class="small">Private dashboard</div>
-        <h1>Creator analytics</h1>
-      </div>
-      <div></div>
-    </div>
-
-    <div class="kpi-grid">
-      <div class="stat-card card">
-        <strong>$0.00</strong>
-        <span>Earnings summary</span>
-      </div>
-      <div class="stat-card card">
-        <strong>${followerCount(me.id)}</strong>
-        <span>Audience size</span>
-      </div>
-      <div class="stat-card card">
-        <strong>${posts.length}</strong>
-        <span>Published posts</span>
-      </div>
-      <div class="stat-card card">
-        <strong>${scoreUser(me)}</strong>
-        <span>Trend score</span>
-      </div>
-      <div class="stat-card card">
-        <strong>${rankGlobal || "—"}</strong>
-        <span>Global rank</span>
-      </div>
-      <div class="stat-card card">
-        <strong>${rankLocal || "—"}</strong>
-        <span>${escapeHtml(me.country)} rank</span>
-      </div>
-    </div>
-
-    <div class="section-title">
-      <h3>Private metrics</h3>
-      <span>Visible only to creator</span>
-    </div>
-
-    <div class="list">
-      <div class="setting-card card">
-        <div class="card-title">Monetization performance</div>
-        <p class="card-subtitle">This area is reserved for real fan support, payouts, and subscription data once backend is connected.</p>
-      </div>
-
-      <div class="setting-card card">
-        <div class="card-title">Audience analytics</div>
-        <p class="card-subtitle">Reach, retention, support activity, and conversion metrics will appear here privately.</p>
-      </div>
-
-      <div class="setting-card card">
-        <div class="card-title">Ranking movement</div>
-        <p class="card-subtitle">EarnX will track how close you are to #1, #2, #3 and the Top 10 in your country and globally.</p>
       </div>
     </div>
   `;
@@ -1039,12 +1133,16 @@ function bottomNav() {
 
   return `
     <nav class="bottom-nav">
-      ${items.map(([id, emoji, label]) => `
-        <button class="nav-btn ${state.ui.appView === id ? "active" : ""}" data-nav="${id}">
-          <span class="nav-emoji">${emoji}</span>
-          <span>${label}</span>
-        </button>
-      `).join("")}
+      ${items
+        .map(
+          ([key, emoji, label]) => `
+            <button class="nav-btn ${state.ui.appView === key ? "active" : ""}" data-nav="${key}">
+              <span class="nav-emoji">${emoji}</span>
+              <span>${label}</span>
+            </button>
+          `
+        )
+        .join("")}
     </nav>
   `;
 }
@@ -1056,7 +1154,7 @@ function render() {
 }
 
 function bindEvents() {
-  document.querySelectorAll("[data-auth-view]").forEach(btn => {
+  document.querySelectorAll("[data-auth-view]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.ui.authView = btn.dataset.authView;
       saveState();
@@ -1066,7 +1164,7 @@ function bindEvents() {
 
   const loginForm = document.getElementById("loginForm");
   if (loginForm) {
-    loginForm.addEventListener("submit", e => {
+    loginForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const fd = new FormData(loginForm);
       login(fd.get("email"), fd.get("password"));
@@ -1075,7 +1173,7 @@ function bindEvents() {
 
   const signupForm = document.getElementById("signupForm");
   if (signupForm) {
-    signupForm.addEventListener("submit", e => {
+    signupForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const fd = new FormData(signupForm);
       signup({
@@ -1096,7 +1194,7 @@ function bindEvents() {
     });
   }
 
-  document.querySelectorAll("[data-nav]").forEach(btn => {
+  document.querySelectorAll("[data-nav]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.ui.appView = btn.dataset.nav;
       saveState();
@@ -1104,7 +1202,7 @@ function bindEvents() {
     });
   });
 
-  document.querySelectorAll("[data-discover-tab]").forEach(btn => {
+  document.querySelectorAll("[data-discover-tab]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.ui.discoverTab = btn.dataset.discoverTab;
       saveState();
@@ -1114,26 +1212,26 @@ function bindEvents() {
 
   const searchInput = document.getElementById("searchInput");
   if (searchInput) {
-    searchInput.addEventListener("input", e => {
+    searchInput.addEventListener("input", (e) => {
       state.ui.searchQuery = e.target.value;
       saveState();
       render();
     });
   }
 
-  document.querySelectorAll("[data-follow]").forEach(btn => {
+  document.querySelectorAll("[data-follow]").forEach((btn) => {
     btn.addEventListener("click", () => {
       toggleFollow(btn.dataset.follow);
     });
   });
 
-  document.querySelectorAll("[data-open-profile]").forEach(btn => {
+  document.querySelectorAll("[data-open-profile]").forEach((btn) => {
     btn.addEventListener("click", () => {
       goToProfile(btn.dataset.openProfile);
     });
   });
 
-  document.querySelectorAll("[data-go-dashboard]").forEach(btn => {
+  document.querySelectorAll("[data-go-dashboard]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.ui.appView = "dashboard";
       saveState();
@@ -1141,13 +1239,48 @@ function bindEvents() {
     });
   });
 
-  document.querySelectorAll("[data-go-settings]").forEach(btn => {
+  document.querySelectorAll("[data-go-settings]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.ui.appView = "settings";
       saveState();
       render();
     });
   });
+
+  document.querySelectorAll("[data-message-user]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.ui.appView = "messages";
+      saveState();
+      render();
+    });
+  });
+
+  const createPostForm = document.getElementById("createPostForm");
+  if (createPostForm) {
+    createPostForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(createPostForm);
+      createPost(fd.get("content"), fd.get("monetized"));
+    });
+  }
+
+  const messageForm = document.getElementById("messageForm");
+  if (messageForm) {
+    messageForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(messageForm);
+      createMessage(String(fd.get("toUserId")), String(fd.get("text")));
+    });
+  }
+
+  const goDiscoverBtn = document.getElementById("goDiscoverBtn");
+  if (goDiscoverBtn) {
+    goDiscoverBtn.addEventListener("click", () => {
+      state.ui.appView = "search";
+      saveState();
+      render();
+    });
+  }
 
   const openSettingsBtn = document.getElementById("openSettingsBtn");
   if (openSettingsBtn) {
@@ -1167,49 +1300,16 @@ function bindEvents() {
     });
   }
 
-  const goDiscoverBtn = document.getElementById("goDiscoverBtn");
-  if (goDiscoverBtn) {
-    goDiscoverBtn.addEventListener("click", () => {
-      state.ui.appView = "search";
-      saveState();
+  const refreshSearchBtn = document.getElementById("refreshSearchBtn");
+  if (refreshSearchBtn) {
+    refreshSearchBtn.addEventListener("click", () => {
       render();
     });
   }
-
-  const createPostForm = document.getElementById("createPostForm");
-  if (createPostForm) {
-    createPostForm.addEventListener("submit", e => {
-      e.preventDefault();
-      const fd = new FormData(createPostForm);
-      createPost(fd.get("content"), fd.get("monetized"));
-    });
-  }
-
-  const messageForm = document.getElementById("messageForm");
-  if (messageForm) {
-    messageForm.addEventListener("submit", e => {
-      e.preventDefault();
-      const fd = new FormData(messageForm);
-      createMessage(String(fd.get("toUserId")), String(fd.get("text")));
-    });
-  }
-
-  document.querySelectorAll("[data-message-user]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.ui.appView = "messages";
-      saveState();
-      render();
-    });
-  });
 
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", logout);
-  }
-
-  const refreshSearchBtn = document.getElementById("refreshSearchBtn");
-  if (refreshSearchBtn) {
-    refreshSearchBtn.addEventListener("click", () => render());
   }
 }
 
