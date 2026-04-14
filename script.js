@@ -1,4 +1,4 @@
-const STORAGE_KEY = "earnx_app_final";
+const STORAGE_KEY = "earnx_app_stable_v1";
 
 const countries = [
   "Puerto Rico",
@@ -200,11 +200,16 @@ function toggleFollow(targetUserId) {
   saveState();
   render();
   setNotice("success", "Now following creator.");
+}
+
 function login(email, password) {
+  const cleanEmail = normalizeEmail(email);
+  const cleanPassword = String(password);
+
   const user = state.users.find(
     (u) =>
-      u.email.toLowerCase() === String(email).toLowerCase() &&
-      u.password === password
+      normalizeEmail(u.email) === cleanEmail &&
+      String(u.password) === cleanPassword
   );
 
   if (!user) {
@@ -217,11 +222,16 @@ function login(email, password) {
   state.ui.profileUserId = user.id;
   saveState();
   render();
+}
+
 function signup(form) {
+  const cleanEmail = normalizeEmail(form.email);
+  const cleanUsername = String(form.username).trim().toLowerCase();
+
   const exists = state.users.some(
     (u) =>
-      u.email.toLowerCase() === form.email.toLowerCase() ||
-      u.username.toLowerCase() === form.username.toLowerCase()
+      normalizeEmail(u.email) === cleanEmail ||
+      String(u.username).trim().toLowerCase() === cleanUsername
   );
 
   if (exists) {
@@ -231,12 +241,12 @@ function signup(form) {
 
   const newUser = {
     id: uid("user"),
-    displayName: form.displayName,
-    username: form.username,
-    email: form.email,
-    password: form.password,
-    country: form.country,
-    bio: form.bio || "Creator on EarnX.",
+    displayName: String(form.displayName).trim(),
+    username: String(form.username).trim(),
+    email: cleanEmail,
+    password: String(form.password),
+    country: String(form.country),
+    bio: String(form.bio || "").trim() || "Creator on EarnX.",
     createdAt: Date.now()
   };
 
