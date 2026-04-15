@@ -1,4 +1,5 @@
-const STORAGE_KEY = "earnx_app_stable_v2";
+const STORAGE_KEY = "earnx_app_stable_v1";
+
 
 const countries = [
   "Puerto Rico",
