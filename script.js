@@ -1,105 +1,107 @@
-// Try all known keys so existing accounts are never lost
-const STORAGE_KEY = “earnx_app_stable_v1”;
-const LEGACY_KEYS = [“earnx_app_final”, “earnx_app_stable_v2”];
+// ─── API config ──────────────────────────────────────────────────────────────
+const TOKEN_KEY = "earnx_token";
+const UI_KEY    = "earnx_ui";
 
 const countries = [
-“Puerto Rico”,
-“United States”,
-“Mexico”,
-“Colombia”,
-“Argentina”,
-“Spain”,
-“Dominican Republic”,
-“Chile”,
-“Brazil”,
-“Global”
+"Puerto Rico",
+"United States",
+"Mexico",
+"Colombia",
+"Argentina",
+"Spain",
+"Dominican Republic",
+"Chile",
+"Brazil",
+"Global"
 ];
 
-const initialState = {
-sessionUserId: null,
-ui: {
-authView: “login”,
-appView: “home”,
-discoverTab: “global”,
+// ─── State ────────────────────────────────────────────────────────────────────
+const initialUI = {
+authView: "login",
+appView: "home",
+discoverTab: "global",
 profileUserId: null,
 notice: null,
-searchQuery: “”,
-theme: “dark”
-},
+searchQuery: "",
+theme: "dark"
+};
+
+function loadUIState() {
+try {
+const saved = JSON.parse(localStorage.getItem(UI_KEY) || "null");
+return saved ? { ...initialUI, ...saved, notice: null } : { ...initialUI };
+} catch {
+return { ...initialUI };
+}
+}
+
+function saveUIState() {
+try {
+localStorage.setItem(UI_KEY, JSON.stringify(state.ui));
+} catch {}
+}
+
+// saveState() persists only UI – all live data comes from the API
+function saveState() {
+saveUIState();
+}
+
+let state = {
+sessionUserId: null,
+ui: loadUIState(),
 users: [],
 posts: [],
 follows: [],
 messages: []
 };
 
-let state = loadState();
-
-function loadState() {
-try {
-// Try primary key first, then legacy keys
-const keysToTry = [STORAGE_KEY, …LEGACY_KEYS];
-let raw = null;
-let foundKey = null;
-
-```
-for (const key of keysToTry) {
-  const val = localStorage.getItem(key);
-  if (val) {
-    raw = val;
-    foundKey = key;
-    break;
-  }
+// ─── API helpers ──────────────────────────────────────────────────────────────
+function getToken() {
+return localStorage.getItem(TOKEN_KEY);
 }
 
-if (!raw) return structuredClone(initialState);
-
-const parsed = JSON.parse(raw);
-const loaded = {
-  ...structuredClone(initialState),
-  ...parsed,
-  ui: {
-    ...structuredClone(initialState).ui,
-    ...(parsed.ui || {}),
-    notice: null
-  }
-};
-
-// Migrate to primary key if found in a legacy key
-if (foundKey !== STORAGE_KEY) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(loaded));
-  localStorage.removeItem(foundKey);
+function setToken(token) {
+if (token) localStorage.setItem(TOKEN_KEY, token);
+else localStorage.removeItem(TOKEN_KEY);
 }
 
-return loaded;
-```
+async function apiFetch(method, path, body) {
+const headers = { "Content-Type": "application/json" };
+const token = getToken();
+if (token) headers["Authorization"] = "Bearer " + token;
+const res = await fetch("/api" + path, {
+method,
+headers,
+body: body !== undefined ? JSON.stringify(body) : undefined
+});
+const data = await res.json();
+if (!res.ok) throw new Error(data.error || "Request failed.");
+return data;
+}
 
-} catch {
-return structuredClone(initialState);
+async function refreshData() {
+const data = await apiFetch("GET", "/state");
+state.sessionUserId = data.currentUserId;
+state.users         = data.users;
+state.posts         = data.posts;
+state.follows       = data.follows;
+state.messages      = data.messages;
+if (!state.ui.profileUserId) {
+state.ui.profileUserId = state.sessionUserId;
 }
 }
 
-function saveState() {
-try {
-localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-} catch {
-// storage full or blocked – fail silently
-}
-}
-
-function uid(prefix = “id”) {
-return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 function normalizeEmail(email) {
-return String(email || “”).trim().toLowerCase();
+return String(email || "").trim().toLowerCase();
 }
 
-function escapeHtml(str = “”) {
+function escapeHtml(str = "") {
 return String(str)
-.replaceAll(”&”, “&”)
-.replaceAll(”<”, “<”)
-.replaceAll(”>”, “>”)
-.replaceAll(’”’, “"”);
+.replaceAll("&", "&")
+.replaceAll("<", "<")
+.replaceAll(">", ">")
+.replaceAll('"', """);
 }
 
 // ─── Notice ───────────────────────────────────────────────────────────────────
@@ -119,8 +121,8 @@ noticeTimer = null;
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 function applyTheme() {
-const theme = state.ui.theme || “dark”;
-document.body.classList.toggle(“light-theme”, theme === “light”);
+const theme = state.ui.theme || "dark";
+document.body.classList.toggle("light-theme", theme === "light");
 }
 
 function setTheme(theme) {
@@ -136,14 +138,14 @@ if (!state.sessionUserId) return null;
 return state.users.find((u) => u.id === state.sessionUserId) || null;
 }
 
-function getInitials(name = “”) {
+function getInitials(name = "") {
 const parts = String(name).trim().split(/\s+/).filter(Boolean);
-if (!parts.length) return “EX”;
-return parts.slice(0, 2).map((w) => w[0].toUpperCase()).join(””);
+if (!parts.length) return "EX";
+return parts.slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 }
 
 function formatDate(ts) {
-return new Date(ts).toLocaleDateString([], { month: “short”, day: “numeric” });
+return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 function userPosts(userId) {
@@ -171,208 +173,180 @@ const following = followingCount(user.id);
 return followers * 8 + posts * 5 + Math.max(0, 10 - following);
 }
 
-function rankingUsers(scope = “global”, viewerCountry = “Global”) {
-let users = […state.users];
-if (scope === “local”) {
+function rankingUsers(scope = "global", viewerCountry = "Global") {
+let users = [...state.users];
+if (scope === "local") {
 users = users.filter((u) => u.country === viewerCountry);
 }
 return users
-.map((u) => ({ …u, score: scoreUser(u) }))
+.map((u) => ({ ...u, score: scoreUser(u) }))
 .sort((a, b) => b.score - a.score);
 }
 
-function getRankPosition(userId, scope = “global”, viewerCountry = “Global”) {
+function getRankPosition(userId, scope = "global", viewerCountry = "Global") {
 const ranked = rankingUsers(scope, viewerCountry);
 const index = ranked.findIndex((u) => u.id === userId);
 return index === -1 ? null : index + 1;
 }
 
-function getRankBadge(userId, scope = “global”, viewerCountry = “Global”) {
+function getRankBadge(userId, scope = "global", viewerCountry = "Global") {
 const pos = getRankPosition(userId, scope, viewerCountry);
 if (!pos) return null;
-if (pos === 1) return { label: “#1 Trending”, className: “rank-1” };
-if (pos === 2) return { label: “#2 Trending”, className: “rank-2” };
-if (pos === 3) return { label: “#3 Trending”, className: “rank-3” };
-if (pos <= 10) return { label: `Top ${pos}`, className: “” };
+if (pos === 1) return { label: "#1 Trending", className: "rank-1" };
+if (pos === 2) return { label: "#2 Trending", className: "rank-2" };
+if (pos === 3) return { label: "#3 Trending", className: "rank-3" };
+if (pos <= 10) return { label: `Top ${pos}`, className: "" };
 return null;
 }
 
-function isAmbassador(userId, viewerCountry = “Global”) {
-const globalTop3 = rankingUsers(“global”).slice(0, 3).map((u) => u.id);
-const localTop3 = rankingUsers(“local”, viewerCountry).slice(0, 3).map((u) => u.id);
+function isAmbassador(userId, viewerCountry = "Global") {
+const globalTop3 = rankingUsers("global").slice(0, 3).map((u) => u.id);
+const localTop3 = rankingUsers("local", viewerCountry).slice(0, 3).map((u) => u.id);
 return globalTop3.includes(userId) || localTop3.includes(userId);
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
-function toggleFollow(targetUserId) {
+async function toggleFollow(targetUserId) {
 const me = currentUser();
 if (!me || me.id === targetUserId) return;
-
-const index = state.follows.findIndex(
-(f) => f.followerId === me.id && f.followingId === targetUserId
-);
-
-if (index >= 0) {
-state.follows.splice(index, 1);
-saveState();
+const already = isFollowing(me.id, targetUserId);
+try {
+if (already) {
+await apiFetch("DELETE", "/follows/" + targetUserId);
+setNotice("success", "Unfollowed creator.");
+} else {
+await apiFetch("POST", "/follows/" + targetUserId);
+setNotice("success", "Now following creator.");
+}
+await refreshData();
 render();
-setNotice(“success”, “Unfollowed creator.”);
-return;
+} catch (err) {
+setNotice("error", err.message);
+}
 }
 
-state.follows.push({
-id: uid(“follow”),
-followerId: me.id,
-followingId: targetUserId
-});
-
-saveState();
-render();
-setNotice(“success”, “Now following creator.”);
-}
-
-// FIX: login now trims and normalizes inputs before comparing
-function login(email, password) {
-const cleanEmail = normalizeEmail(email);
-const cleanPassword = String(password || “”).trim();
-
+async function login(email, password) {
+const cleanEmail    = normalizeEmail(email);
+const cleanPassword = String(password || "").trim();
 if (!cleanEmail || !cleanPassword) {
-setNotice(“error”, “Please enter your email and password.”);
+setNotice("error", "Please enter your email and password.");
 return;
 }
-
-const user = state.users.find(
-(u) =>
-normalizeEmail(u.email) === cleanEmail &&
-String(u.password).trim() === cleanPassword
-);
-
-if (!user) {
-setNotice(“error”, “Incorrect email or password. Please try again.”);
-return;
-}
-
-state.sessionUserId = user.id;
-state.ui.appView = “home”;
-state.ui.profileUserId = user.id;
-state.ui.authView = “login”;
-saveState();
+try {
+const result = await apiFetch("POST", "/auth/login", {
+email: cleanEmail, password: cleanPassword
+});
+setToken(result.token);
+await refreshData();
+state.ui.appView = "home";
+state.ui.profileUserId = state.sessionUserId;
+saveUIState();
 render();
-setNotice(“success”, `Welcome back, ${user.displayName}!`);
+setNotice("success", "Welcome back, " + result.user.displayName + "!");
+} catch (err) {
+setNotice("error", err.message);
+}
 }
 
-// FIX: signup validates all required fields before attempting
-function signup(form) {
-const cleanEmail = normalizeEmail(form.email);
-const cleanUsername = String(form.username || “”).trim().toLowerCase();
-const cleanDisplayName = String(form.displayName || “”).trim();
-const cleanPassword = String(form.password || “”).trim();
-const cleanCountry = String(form.country || “”).trim();
-
-if (!cleanDisplayName) { setNotice(“error”, “Display name is required.”); return; }
-if (!cleanUsername) { setNotice(“error”, “Username is required.”); return; }
-if (!cleanEmail) { setNotice(“error”, “Email is required.”); return; }
+async function signup(form) {
+const cleanEmail       = normalizeEmail(form.email);
+const cleanUsername    = String(form.username    || "").trim().toLowerCase();
+const cleanDisplayName = String(form.displayName || "").trim();
+const cleanPassword    = String(form.password    || "").trim();
+const cleanCountry     = String(form.country     || "").trim();
+const cleanBio         = String(form.bio         || "").trim();
+if (!cleanDisplayName) { setNotice("error", "Display name is required."); return; }
+if (!cleanUsername)    { setNotice("error", "Username is required."); return; }
+if (!cleanEmail)       { setNotice("error", "Email is required."); return; }
 if (!cleanPassword || cleanPassword.length < 4) {
-setNotice(“error”, “Password must be at least 4 characters.”);
+setNotice("error", "Password must be at least 4 characters.");
 return;
 }
-if (!cleanCountry) { setNotice(“error”, “Please select a country.”); return; }
-
-const exists = state.users.some(
-(u) =>
-normalizeEmail(u.email) === cleanEmail ||
-String(u.username).trim().toLowerCase() === cleanUsername
-);
-
-if (exists) {
-setNotice(“error”, “That email or username is already in use.”);
-return;
-}
-
-const newUser = {
-id: uid(“user”),
+if (!cleanCountry) { setNotice("error", "Please select a country."); return; }
+try {
+const result = await apiFetch("POST", "/auth/register", {
 displayName: cleanDisplayName,
 username: cleanUsername,
 email: cleanEmail,
 password: cleanPassword,
 country: cleanCountry,
-bio: String(form.bio || “”).trim() || “Creator on EarnX.”,
-createdAt: Date.now()
-};
-
-state.users.push(newUser);
-state.sessionUserId = newUser.id;
-state.ui.appView = “home”;
-state.ui.profileUserId = newUser.id;
-saveState();
+bio: cleanBio || "Creator on EarnX."
+});
+setToken(result.token);
+await refreshData();
+state.ui.appView = "home";
+state.ui.profileUserId = state.sessionUserId;
+saveUIState();
 render();
-setNotice(“success”, `Welcome to EarnX, ${newUser.displayName}!`);
+setNotice("success", "Welcome to EarnX, " + result.user.displayName + "!");
+} catch (err) {
+setNotice("error", err.message);
+}
 }
 
 function logout() {
+setToken(null);
 state.sessionUserId = null;
-state.ui.authView = “login”;
-state.ui.notice = null;
-saveState();
+state.users    = [];
+state.posts    = [];
+state.follows  = [];
+state.messages = [];
+state.ui = { ...initialUI };
+saveUIState();
 render();
 }
 
-function createPost(content, monetized) {
+async function createPost(content, monetized) {
 const me = currentUser();
 if (!me) return;
-
-if (!String(content || “”).trim()) {
-setNotice(“error”, “Write something before publishing.”);
+if (!String(content || "").trim()) {
+setNotice("error", "Write something before publishing.");
 return;
 }
-
-state.posts.unshift({
-id: uid(“post”),
-userId: me.id,
+try {
+await apiFetch("POST", "/posts", {
 content: String(content).trim(),
-monetized: Boolean(monetized),
-createdAt: Date.now()
+monetized: Boolean(monetized)
 });
-
-saveState();
-state.ui.appView = “profile”;
+await refreshData();
+state.ui.appView = "profile";
 state.ui.profileUserId = me.id;
+saveUIState();
 render();
-setNotice(“success”, “Post published.”);
+setNotice("success", "Post published.");
+} catch (err) {
+setNotice("error", err.message);
+}
 }
 
-function createMessage(toUserId, text) {
+async function createMessage(toUserId, text) {
 const me = currentUser();
 if (!me) return;
-
-if (!String(text || “”).trim()) {
-setNotice(“error”, “Message cannot be empty.”);
+if (!String(text || "").trim()) {
+setNotice("error", "Message cannot be empty.");
 return;
 }
-
-state.messages.push({
-id: uid(“msg”),
-fromUserId: me.id,
-toUserId,
-text: String(text).trim(),
-createdAt: Date.now()
-});
-
-saveState();
+try {
+await apiFetch("POST", "/messages", { toUserId, text: String(text).trim() });
+await refreshData();
 render();
-setNotice(“success”, “Message sent.”);
+setNotice("success", "Message sent.");
+} catch (err) {
+setNotice("error", err.message);
+}
 }
 
 function goToProfile(userId) {
 state.ui.profileUserId = userId;
-state.ui.appView = “profile”;
+state.ui.appView = "profile";
 saveState();
 render();
 }
 
+
 // ─── Render helpers ───────────────────────────────────────────────────────────
 function renderNotice() {
-if (!state.ui.notice) return “”;
+if (!state.ui.notice) return "";
 return `<div class="notice ${state.ui.notice.type}">${escapeHtml(state.ui.notice.text)}</div>`;
 }
 
@@ -386,7 +360,7 @@ profile: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="
 settings: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.2a1 1 0 0 0-.9.6z"/></svg>`,
 refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v6h-6"/></svg>`
 };
-return icons[name] || “”;
+return icons[name] || "";
 }
 
 // ─── Auth views ───────────────────────────────────────────────────────────────
@@ -395,11 +369,11 @@ const view = state.ui.authView;
 
 const brandHtml = `<div class="brand"> <div class="brand-badge">X</div> <div> <div class="brand-title">EarnX</div> <div class="small">Creator economy platform</div> </div> </div>`;
 
-if (view === “signup”) {
-return `<div class="auth-shell"> ${brandHtml} <p class="brand-subtitle">Build audience, compete for visibility, and turn attention into creator momentum.</p> ${renderNotice()} <div class="card auth-card"> <h2 class="card-title">Create account</h2> <p class="card-subtitle">Start as a real creator with a clear identity.</p> <form id="signupForm" novalidate> <div class="field"> <label class="label">Display name</label> <input class="input" name="displayName" placeholder="Rafael Amaral" autocomplete="name" /> </div> <div class="field"> <label class="label">Username</label> <input class="input" name="username" placeholder="rafaelx" autocomplete="username" /> </div> <div class="field"> <label class="label">Email</label> <input class="input" type="email" name="email" placeholder="you@example.com" autocomplete="email" /> </div> <div class="field"> <label class="label">Password</label> <input class="input" type="password" name="password" placeholder="••••••••" autocomplete="new-password" /> </div> <div class="field"> <label class="label">Country</label> <select class="select" name="country"> <option value="">Select country…</option> ${countries.map((c) =>`<option value="${c}">${c}</option>`).join("")} </select> </div> <div class="field"> <label class="label">Bio <span class="muted">(optional)</span></label> <textarea class="textarea" name="bio" placeholder="Tell your audience what you create."></textarea> </div> <button class="btn btn-primary" type="submit">Create account</button> </form> <div class="auth-links"> <button class="btn btn-ghost" type="button" data-auth-view="login">Already have an account?</button> </div> </div> </div> `;
+if (view === "signup") {
+return `<div class="auth-shell"> ${brandHtml} <p class="brand-subtitle">Build audience, compete for visibility, and turn attention into creator momentum.</p> ${renderNotice()} <div class="card auth-card"> <h2 class="card-title">Create account</h2> <p class="card-subtitle">Start as a real creator with a clear identity.</p> <form id="signupForm" novalidate> <div class="field"> <label class="label">Display name</label> <input class="input" name="displayName" placeholder="Rafael Amaral" autocomplete="name" /> </div> <div class="field"> <label class="label">Username</label> <input class="input" name="username" placeholder="rafaelx" autocomplete="username" /> </div> <div class="field"> <label class="label">Email</label> <input class="input" type="email" name="email" placeholder="you@example.com" autocomplete="email" /> </div> <div class="field"> <label class="label">Password</label> <input class="input" type="password" name="password" placeholder="••••••••" autocomplete="new-password" /> </div> <div class="field"> <label class="label">Country</label> <select class="select" name="country"> <option value="">Select country...</option> ${countries.map((c) =>`<option value="${c}">${c}</option>`).join("")} </select> </div> <div class="field"> <label class="label">Bio <span class="muted">(optional)</span></label> <textarea class="textarea" name="bio" placeholder="Tell your audience what you create."></textarea> </div> <button class="btn btn-primary" type="submit">Create account</button> </form> <div class="auth-links"> <button class="btn btn-ghost" type="button" data-auth-view="login">Already have an account?</button> </div> </div> </div> `;
 }
 
-if (view === “forgot”) {
+if (view === "forgot") {
 return `<div class="auth-shell"> ${brandHtml} ${renderNotice()} <div class="card auth-card"> <h2 class="card-title">Forgot password</h2> <p class="card-subtitle">Password recovery will be available once backend integration is live.</p> <div class="field"> <label class="label">Email</label> <input class="input" type="email" placeholder="you@example.com" /> </div> <button class="btn btn-secondary" type="button" id="fakeRecoveryBtn">Continue</button> <div class="auth-links"> <button class="btn btn-ghost" type="button" data-auth-view="login">← Back to login</button> </div> </div> </div>`;
 }
 
@@ -414,12 +388,12 @@ return `<div class="shell"> ${renderNotice()} ${renderCurrentScreen()} ${bottomN
 
 function renderCurrentScreen() {
 switch (state.ui.appView) {
-case “search”:    return renderSearchScreen();
-case “create”:    return renderCreateScreen();
-case “messages”:  return renderMessagesScreen();
-case “profile”:   return renderProfileScreen();
-case “settings”:  return renderSettingsScreen();
-case “dashboard”: return renderDashboardScreen();
+case "search":    return renderSearchScreen();
+case "create":    return renderCreateScreen();
+case "messages":  return renderMessagesScreen();
+case "profile":   return renderProfileScreen();
+case "settings":  return renderSettingsScreen();
+case "dashboard": return renderDashboardScreen();
 default:          return renderHomeScreen();
 }
 }
@@ -432,7 +406,7 @@ const followingIds = state.follows
 .map((f) => f.followingId);
 
 const feed = state.posts.filter((p) => followingIds.includes(p.userId));
-const rising = rankingUsers(“global”).filter((u) => u.id !== me.id).slice(0, 3);
+const rising = rankingUsers("global").filter((u) => u.id !== me.id).slice(0, 3);
 
 return `
 <div class="topbar">
@@ -441,7 +415,7 @@ return `
 <h1>Following & momentum</h1>
 </div>
 <button class="icon-btn" id="openSettingsBtn" aria-label="Settings">
-<span class="nav-icon">${iconSvg(“settings”)}</span>
+<span class="nav-icon">${iconSvg("settings")}</span>
 </button>
 </div>
 
@@ -488,7 +462,7 @@ return `
 
 function renderMomentumCard(user) {
 const me = currentUser();
-const globalPos = getRankPosition(user.id, “global”, me.country);
+const globalPos = getRankPosition(user.id, "global", me.country);
 const ambassador = isAmbassador(user.id, me.country);
 const followed = isFollowing(me.id, user.id);
 
@@ -498,8 +472,8 @@ return `<div class="momentum-card"> <div class="momentum-head"> <div class="avat
 function renderPostCard(post) {
 const me = currentUser();
 const user = state.users.find((u) => u.id === post.userId);
-if (!user) return “”;
-const badge = getRankBadge(user.id, “global”, me.country);
+if (!user) return "";
+const badge = getRankBadge(user.id, "global", me.country);
 const ambassador = isAmbassador(user.id, me.country);
 
 return `<div class="post-card"> <div class="post-head"> <div class="avatar">${getInitials(user.displayName)}</div> <div class="name-block"> <div class="name-line"> <h4>${escapeHtml(user.displayName)}</h4> ${badge ?`<span class="badge ${badge.className}">${escapeHtml(badge.label)}</span>`: ""} ${ambassador ?`<span class="badge ambassador">Ambassador</span>`: ""} </div> <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)} · ${formatDate(post.createdAt)}</div> </div> </div> <div class="post-content">${escapeHtml(post.content)}</div> <div class="post-actions"> <span class="chip">Support</span> <span class="chip">Comment</span> <span class="chip">Share</span> ${post.monetized ?`<span class="chip">Support enabled</span>`: ""} </div> </div>`;
@@ -511,15 +485,15 @@ const me = currentUser();
 const tab = state.ui.discoverTab;
 const query = state.ui.searchQuery.trim().toLowerCase();
 
-const global = rankingUsers(“global”);
-const local = rankingUsers(“local”, me.country);
+const global = rankingUsers("global");
+const local = rankingUsers("local", me.country);
 const ambassadors = global.filter((u) => isAmbassador(u.id, me.country));
 const rising = global.slice(0, 10);
 
 let list = global;
-if (tab === “local”) list = local;
-else if (tab === “trending”) list = rising;
-else if (tab === “ambassadors”) list = ambassadors;
+if (tab === "local") list = local;
+else if (tab === "trending") list = rising;
+else if (tab === "ambassadors") list = ambassadors;
 
 if (query) {
 list = list.filter(
@@ -537,13 +511,13 @@ return `
 <h1>Global, local, ambassadors</h1>
 </div>
 <button class="icon-btn" id="refreshSearchBtn" aria-label="Refresh">
-<span class="nav-icon">${iconSvg(“refresh”)}</span>
+<span class="nav-icon">${iconSvg("refresh")}</span>
 </button>
 </div>
 
 ```
 <div class="searchbar">
-  <input class="input" id="searchInput" placeholder="Search creators, usernames, countries…" value="${escapeHtml(state.ui.searchQuery)}" />
+  <input class="input" id="searchInput" placeholder="Search creators, usernames, countries..." value="${escapeHtml(state.ui.searchQuery)}" />
 </div>
 
 <div class="tabs">
@@ -588,10 +562,10 @@ return `
 }
 
 function tabLabel(tab) {
-if (tab === “local”) return “Local creators”;
-if (tab === “trending”) return “Trending now”;
-if (tab === “ambassadors”) return “EarnX ambassadors”;
-return “Global creators”;
+if (tab === "local") return "Local creators";
+if (tab === "trending") return "Trending now";
+if (tab === "ambassadors") return "EarnX ambassadors";
+return "Global creators";
 }
 
 function renderTopCards(users, viewerCountry) {
@@ -601,20 +575,20 @@ return `<div class="rank-card"> <div class="rank-number gold">#1</div> <div clas
 }
 
 return top.map((u, i) => {
-const tone = i === 0 ? “gold” : i === 1 ? “silver” : “bronze”;
+const tone = i === 0 ? "gold" : i === 1 ? "silver" : "bronze";
 return `<div class="rank-card"> <div class="rank-number ${tone}">#${i + 1}</div> <div class="name-line"><h4>${escapeHtml(u.displayName)}</h4></div> <div class="handle">@${escapeHtml(u.username)} · ${escapeHtml(u.country)}</div> <div class="mini-line"></div> <div class="post-actions"> <span class="chip">Score ${scoreUser(u)}</span> ${isAmbassador(u.id, viewerCountry) ?`<span class="badge ambassador">Ambassador</span>`: ""} </div> </div>`;
-}).join(””);
+}).join("");
 }
 
 function renderCreatorCard(user) {
 const me = currentUser();
 const own = user.id === me.id;
 const followed = isFollowing(me.id, user.id);
-const globalBadge = getRankBadge(user.id, “global”, me.country);
-const localBadge = getRankBadge(user.id, “local”, me.country);
+const globalBadge = getRankBadge(user.id, "global", me.country);
+const localBadge = getRankBadge(user.id, "local", me.country);
 const ambassador = isAmbassador(user.id, me.country);
 
-return `<div class="creator-card"> <div class="creator-head"> <div class="avatar">${getInitials(user.displayName)}</div> <div class="name-block"> <div class="name-line"> <h4>${escapeHtml(user.displayName)}</h4> ${globalBadge ?`<span class="badge ${globalBadge.className}">${escapeHtml(globalBadge.label)}</span>`: ""} ${ambassador ?`<span class="badge ambassador">${user.country === me.country ? “Country Ambassador” : “Global Ambassador”}</span>`: ""} </div> <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div> </div> </div> <div class="profile-bio">${escapeHtml(user.bio || "Creator on EarnX.")}</div> <div class="post-actions"> <span class="chip">${followerCount(user.id)} followers</span> <span class="chip">${userPosts(user.id).length} posts</span> <span class="chip">Score ${scoreUser(user)}</span> ${localBadge ?`<span class="chip">${escapeHtml(localBadge.label)} local</span>`: ""} </div> <div class="row" style="margin-top:12px;"> <button class="btn btn-secondary" data-open-profile="${user.id}">View profile</button> ${own ?`<button class="btn btn-primary" data-go-dashboard="1">Dashboard</button>`:`<button class="btn btn-primary" data-follow="${user.id}">${followed ? “Following” : “Follow”}</button>`} </div> </div>`;
+return `<div class="creator-card"> <div class="creator-head"> <div class="avatar">${getInitials(user.displayName)}</div> <div class="name-block"> <div class="name-line"> <h4>${escapeHtml(user.displayName)}</h4> ${globalBadge ?`<span class="badge ${globalBadge.className}">${escapeHtml(globalBadge.label)}</span>`: ""} ${ambassador ?`<span class="badge ambassador">${user.country === me.country ? "Country Ambassador" : "Global Ambassador"}</span>`: ""} </div> <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)}</div> </div> </div> <div class="profile-bio">${escapeHtml(user.bio || "Creator on EarnX.")}</div> <div class="post-actions"> <span class="chip">${followerCount(user.id)} followers</span> <span class="chip">${userPosts(user.id).length} posts</span> <span class="chip">Score ${scoreUser(user)}</span> ${localBadge ?`<span class="chip">${escapeHtml(localBadge.label)} local</span>`: ""} </div> <div class="row" style="margin-top:12px;"> <button class="btn btn-secondary" data-open-profile="${user.id}">View profile</button> ${own ?`<button class="btn btn-primary" data-go-dashboard="1">Dashboard</button>`:`<button class="btn btn-primary" data-follow="${user.id}">${followed ? "Following" : "Follow"}</button>`} </div> </div>`;
 }
 
 // ─── Create ───────────────────────────────────────────────────────────────────
@@ -637,7 +611,7 @@ return `<div class="topbar"> <div> <span class="eyebrow">Messages</span> <h1>Pri
 <div class="field">
 <label class="label">Send to</label>
 <select class="select" name="toUserId">
-${users.map((u) => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${escapeHtml(u.username)})</option>`).join(””)}
+${users.map((u) => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${escapeHtml(u.username)})</option>`).join("")}
 </select>
 </div>
 <div class="field">
@@ -646,7 +620,7 @@ ${users.map((u) => `<option value="${u.id}">${escapeHtml(u.displayName)} (@${esc
 </div>
 <button class="btn btn-primary" type="submit">Send message</button>
 </form>
-</div>`: "" } <section class="section"> <div class="section-head"> <h3>Recent inbox activity</h3> <span class="section-meta">${recent.length} message${recent.length !== 1 ? "s" : ""}</span> </div> ${recent.length ?`<div class="list">${recent.map(renderMessageCard).join(””)}</div>`:`<div class="panel empty-state">
+</div>`: "" } <section class="section"> <div class="section-head"> <h3>Recent inbox activity</h3> <span class="section-meta">${recent.length} message${recent.length !== 1 ? "s" : ""}</span> </div> ${recent.length ?`<div class="list">${recent.map(renderMessageCard).join("")}</div>`:`<div class="panel empty-state">
 <h3>Your inbox is quiet</h3>
 <p>As creator communication begins, private interactions will appear here.</p>
 </div>`} </section>`;
@@ -656,7 +630,7 @@ function renderMessageCard(msg) {
 const me = currentUser();
 const from = state.users.find((u) => u.id === msg.fromUserId);
 const to = state.users.find((u) => u.id === msg.toUserId);
-if (!from || !to) return “”;
+if (!from || !to) return "";
 const other = msg.fromUserId === me.id ? to : from;
 
 return `<div class="message-card"> <div class="message-head"> <div class="avatar">${getInitials(other.displayName)}</div> <div class="name-block"> <div class="name-line"><h4>${escapeHtml(other.displayName)}</h4></div> <div class="handle">${msg.fromUserId === me.id ? "To" : "From"} @${escapeHtml(other.username)} · ${formatDate(msg.createdAt)}</div> </div> </div> <div class="post-content">${escapeHtml(msg.text)}</div> </div>`;
@@ -669,8 +643,8 @@ const user = state.users.find((u) => u.id === state.ui.profileUserId) || me;
 
 const own = user.id === me.id;
 const posts = userPosts(user.id);
-const globalPos = getRankPosition(user.id, “global”, me.country);
-const localPos = getRankPosition(user.id, “local”, me.country);
+const globalPos = getRankPosition(user.id, "global", me.country);
+const localPos = getRankPosition(user.id, "local", me.country);
 const ambassador = isAmbassador(user.id, me.country);
 const followed = isFollowing(me.id, user.id);
 
@@ -678,10 +652,10 @@ return `
 <div class="topbar">
 <div>
 <span class="eyebrow">Profile</span>
-<h1>${own ? “Identity & business” : “Creator identity”}</h1>
+<h1>${own ? "Identity & business" : "Creator identity"}</h1>
 </div>
 <button class="icon-btn" id="profileSettingsBtn" aria-label="Settings">
-<span class="nav-icon">${iconSvg(“settings”)}</span>
+<span class="nav-icon">${iconSvg("settings")}</span>
 </button>
 </div>
 
@@ -770,8 +744,8 @@ return `
 function renderDashboardScreen() {
 const me = currentUser();
 const posts = userPosts(me.id);
-const globalPos = getRankPosition(me.id, “global”, me.country);
-const localPos = getRankPosition(me.id, “local”, me.country);
+const globalPos = getRankPosition(me.id, "global", me.country);
+const localPos = getRankPosition(me.id, "local", me.country);
 
 return `<div class="topbar"> <div> <span class="eyebrow">Creator Studio</span> <h1>Private growth &amp; monetization</h1> </div> <div></div> </div> <div class="kpi-grid"> <div class="kpi-card"><strong>$0.00</strong><span>Earnings summary</span></div> <div class="kpi-card"><strong>${followerCount(me.id)}</strong><span>Audience size</span></div> <div class="kpi-card"><strong>${posts.length}</strong><span>Published posts</span></div> <div class="kpi-card"><strong>${scoreUser(me)}</strong><span>Trend score</span></div> <div class="kpi-card"><strong>${globalPos || "—"}</strong><span>Global rank</span></div> <div class="kpi-card"><strong>${localPos || "—"}</strong><span>${escapeHtml(me.country)} rank</span></div> </div> <section class="section"> <div class="section-head"> <h3>Private business blocks</h3> <span class="section-meta">Only visible to creator</span> </div> <div class="list"> <div class="setting-card"> <div class="card-title">Monetization performance</div> <p class="card-subtitle">Future area for fan support, subscriptions, conversion, and payout metrics.</p> </div> <div class="setting-card"> <div class="card-title">Audience analytics</div> <p class="card-subtitle">Track reach, retention, and support behavior without exposing private numbers publicly.</p> </div> <div class="setting-card"> <div class="card-title">Ranking movement</div> <p class="card-subtitle">See how close you are to the Top 10, Top 3, and ambassador status.</p> </div> </div> </section>`;
 }
@@ -779,7 +753,7 @@ return `<div class="topbar"> <div> <span class="eyebrow">Creator Studio</span> <
 // ─── Settings ─────────────────────────────────────────────────────────────────
 function renderSettingsScreen() {
 const me = currentUser();
-const isDark = state.ui.theme !== “light”;
+const isDark = state.ui.theme !== "light";
 
 return `
 <div class="topbar">
@@ -836,15 +810,15 @@ return `
 // ─── Bottom nav ───────────────────────────────────────────────────────────────
 function bottomNav() {
 const items = [
-[“home”, “Home”, “home”],
-[“search”, “Search”, “search”],
-[“create”, “Create”, “create”],
-[“messages”, “Messages”, “messages”],
-[“profile”, “Profile”, “profile”]
+["home", "Home", "home"],
+["search", "Search", "search"],
+["create", "Create", "create"],
+["messages", "Messages", "messages"],
+["profile", "Profile", "profile"]
 ];
 
 return `<nav class="bottom-nav"> ${items.map(([key, label, icon]) =>`
-<button class=“nav-btn ${state.ui.appView === key ? “active” : “”}” data-nav=”${key}” aria-label=”${label}”>
+<button class="nav-btn ${state.ui.appView === key ? "active" : ""}" data-nav="${key}" aria-label="${label}">
 <span class="nav-icon">${iconSvg(icon)}</span>
 <span class="nav-label">${label}</span>
 </button>
@@ -854,15 +828,15 @@ return `<nav class="bottom-nav"> ${items.map(([key, label, icon]) =>`
 // ─── Render + bind ────────────────────────────────────────────────────────────
 function render() {
 applyTheme();
-const app = document.getElementById(“app”);
+const app = document.getElementById("app");
 app.innerHTML = currentUser() ? appView() : authView();
 bindEvents();
 }
 
 function bindEvents() {
 // Auth view switches
-document.querySelectorAll(”[data-auth-view]”).forEach((btn) => {
-btn.addEventListener(“click”, () => {
+document.querySelectorAll("[data-auth-view]").forEach((btn) => {
+btn.addEventListener("click", () => {
 state.ui.authView = btn.dataset.authView;
 state.ui.notice = null;
 saveState();
@@ -871,44 +845,44 @@ render();
 });
 
 // Login form — FIX: use trimmed values
-const loginForm = document.getElementById(“loginForm”);
+const loginForm = document.getElementById("loginForm");
 if (loginForm) {
-loginForm.addEventListener(“submit”, (e) => {
+loginForm.addEventListener("submit", (e) => {
 e.preventDefault();
 const fd = new FormData(loginForm);
-login(fd.get(“email”), fd.get(“password”));
+login(fd.get("email"), fd.get("password"));
 });
 }
 
 // Signup form — FIX: validate before calling signup
-const signupForm = document.getElementById(“signupForm”);
+const signupForm = document.getElementById("signupForm");
 if (signupForm) {
-signupForm.addEventListener(“submit”, (e) => {
+signupForm.addEventListener("submit", (e) => {
 e.preventDefault();
 const fd = new FormData(signupForm);
 signup({
-displayName: fd.get(“displayName”),
-username: fd.get(“username”),
-email: fd.get(“email”),
-password: fd.get(“password”),
-country: fd.get(“country”),
-bio: fd.get(“bio”)
+displayName: fd.get("displayName"),
+username: fd.get("username"),
+email: fd.get("email"),
+password: fd.get("password"),
+country: fd.get("country"),
+bio: fd.get("bio")
 });
 });
 }
 
-const fakeRecoveryBtn = document.getElementById(“fakeRecoveryBtn”);
+const fakeRecoveryBtn = document.getElementById("fakeRecoveryBtn");
 if (fakeRecoveryBtn) {
-fakeRecoveryBtn.addEventListener(“click”, () => {
-setNotice(“success”, “Recovery flow reserved for backend integration.”);
+fakeRecoveryBtn.addEventListener("click", () => {
+setNotice("success", "Recovery flow reserved for backend integration.");
 });
 }
 
 // Nav
-document.querySelectorAll(”[data-nav]”).forEach((btn) => {
-btn.addEventListener(“click”, () => {
+document.querySelectorAll("[data-nav]").forEach((btn) => {
+btn.addEventListener("click", () => {
 state.ui.appView = btn.dataset.nav;
-if (btn.dataset.nav === “profile”) {
+if (btn.dataset.nav === "profile") {
 state.ui.profileUserId = state.sessionUserId;
 }
 saveState();
@@ -916,120 +890,134 @@ render();
 });
 });
 
-document.querySelectorAll(”[data-discover-tab]”).forEach((btn) => {
-btn.addEventListener(“click”, () => {
+document.querySelectorAll("[data-discover-tab]").forEach((btn) => {
+btn.addEventListener("click", () => {
 state.ui.discoverTab = btn.dataset.discoverTab;
 saveState();
 render();
 });
 });
 
-const searchInput = document.getElementById(“searchInput”);
+const searchInput = document.getElementById("searchInput");
 if (searchInput) {
-searchInput.addEventListener(“input”, (e) => {
+searchInput.addEventListener("input", (e) => {
 state.ui.searchQuery = e.target.value;
 saveState();
 render();
 });
 }
 
-document.querySelectorAll(”[data-follow]”).forEach((btn) => {
-btn.addEventListener(“click”, () => toggleFollow(btn.dataset.follow));
+document.querySelectorAll("[data-follow]").forEach((btn) => {
+btn.addEventListener("click", () => toggleFollow(btn.dataset.follow));
 });
 
-document.querySelectorAll(”[data-open-profile]”).forEach((btn) => {
-btn.addEventListener(“click”, () => goToProfile(btn.dataset.openProfile));
+document.querySelectorAll("[data-open-profile]").forEach((btn) => {
+btn.addEventListener("click", () => goToProfile(btn.dataset.openProfile));
 });
 
-document.querySelectorAll(”[data-go-dashboard]”).forEach((btn) => {
-btn.addEventListener(“click”, () => {
-state.ui.appView = “dashboard”;
+document.querySelectorAll("[data-go-dashboard]").forEach((btn) => {
+btn.addEventListener("click", () => {
+state.ui.appView = "dashboard";
 saveState();
 render();
 });
 });
 
-document.querySelectorAll(”[data-go-settings]”).forEach((btn) => {
-btn.addEventListener(“click”, () => {
-state.ui.appView = “settings”;
+document.querySelectorAll("[data-go-settings]").forEach((btn) => {
+btn.addEventListener("click", () => {
+state.ui.appView = "settings";
 saveState();
 render();
 });
 });
 
-document.querySelectorAll(”[data-message-user]”).forEach((btn) => {
-btn.addEventListener(“click”, () => {
-state.ui.appView = “messages”;
+document.querySelectorAll("[data-message-user]").forEach((btn) => {
+btn.addEventListener("click", () => {
+state.ui.appView = "messages";
 saveState();
 render();
 });
 });
 
-const createPostForm = document.getElementById(“createPostForm”);
+const createPostForm = document.getElementById("createPostForm");
 if (createPostForm) {
-createPostForm.addEventListener(“submit”, (e) => {
+createPostForm.addEventListener("submit", (e) => {
 e.preventDefault();
 const fd = new FormData(createPostForm);
-createPost(fd.get(“content”), fd.get(“monetized”));
+createPost(fd.get("content"), fd.get("monetized"));
 });
 }
 
-const messageForm = document.getElementById(“messageForm”);
+const messageForm = document.getElementById("messageForm");
 if (messageForm) {
-messageForm.addEventListener(“submit”, (e) => {
+messageForm.addEventListener("submit", (e) => {
 e.preventDefault();
 const fd = new FormData(messageForm);
-createMessage(String(fd.get(“toUserId”)), String(fd.get(“text”)));
+createMessage(String(fd.get("toUserId")), String(fd.get("text")));
 });
 }
 
-const goDiscoverBtn = document.getElementById(“goDiscoverBtn”);
+const goDiscoverBtn = document.getElementById("goDiscoverBtn");
 if (goDiscoverBtn) {
-goDiscoverBtn.addEventListener(“click”, () => {
-state.ui.appView = “search”;
+goDiscoverBtn.addEventListener("click", () => {
+state.ui.appView = "search";
 saveState();
 render();
 });
 }
 
-const openSettingsBtn = document.getElementById(“openSettingsBtn”);
+const openSettingsBtn = document.getElementById("openSettingsBtn");
 if (openSettingsBtn) {
-openSettingsBtn.addEventListener(“click”, () => {
-state.ui.appView = “settings”;
+openSettingsBtn.addEventListener("click", () => {
+state.ui.appView = "settings";
 saveState();
 render();
 });
 }
 
-const profileSettingsBtn = document.getElementById(“profileSettingsBtn”);
+const profileSettingsBtn = document.getElementById("profileSettingsBtn");
 if (profileSettingsBtn) {
-profileSettingsBtn.addEventListener(“click”, () => {
-state.ui.appView = “settings”;
+profileSettingsBtn.addEventListener("click", () => {
+state.ui.appView = "settings";
 saveState();
 render();
 });
 }
 
-const refreshSearchBtn = document.getElementById(“refreshSearchBtn”);
+const refreshSearchBtn = document.getElementById("refreshSearchBtn");
 if (refreshSearchBtn) {
-refreshSearchBtn.addEventListener(“click”, () => render());
+refreshSearchBtn.addEventListener("click", () => render());
 }
 
-const logoutBtn = document.getElementById(“logoutBtn”);
+const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {
-logoutBtn.addEventListener(“click”, logout);
+logoutBtn.addEventListener("click", logout);
 }
 
-const themeDarkBtn = document.getElementById(“themeDarkBtn”);
+const themeDarkBtn = document.getElementById("themeDarkBtn");
 if (themeDarkBtn) {
-themeDarkBtn.addEventListener(“click”, () => setTheme(“dark”));
+themeDarkBtn.addEventListener("click", () => setTheme("dark"));
 }
 
-const themeLightBtn = document.getElementById(“themeLightBtn”);
+const themeLightBtn = document.getElementById("themeLightBtn");
 if (themeLightBtn) {
-themeLightBtn.addEventListener(“click”, () => setTheme(“light”));
+themeLightBtn.addEventListener("click", () => setTheme("light"));
 }
 }
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
+async function initialize() {
+if (getToken()) {
+document.getElementById("app").innerHTML = "<div style=\"height:100vh;display:flex;align-items:center;justify-content:center;\"><div style=\"color:#e5e5e5;font-family:Inter,sans-serif;font-size:15px;\">Loading EarnX\u2026</div></div>";
+try {
+await refreshData();
+} catch {
+setToken(null);
+state.ui = { ...initialUI };
+saveUIState();
+}
+}
 render();
+}
+
+initialize();
