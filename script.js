@@ -1,55 +1,53 @@
-const STORAGE_KEY = "earnx_app_v3";
+const STORAGE_KEY = "earnx_social_v1";
 
+// ---------- STATE ----------
 let state = {
   user: null,
-  balance: 0,
-  totalEarned: 0,
-  tasksCompleted: 0,
-  history: []
+  theme: "dark",
+  view: "home",
+  messages: [],
+  creators: [
+    { name: "NovaX", fans: 1200 },
+    { name: "LunaFlow", fans: 980 },
+    { name: "CryptoJay", fans: 1500 }
+  ],
+  stories: [
+    { user: "NovaX", time: Date.now() },
+    { user: "LunaFlow", time: Date.now() }
+  ],
+  posts: [
+    { user: "NovaX", content: "New drop coming soon 🚀" },
+    { user: "LunaFlow", content: "Fan love is real 💚" }
+  ]
 };
 
+// ---------- INIT ----------
+function init() {
+  loadState();
+  applyTheme();
+  render();
+}
+
+// ---------- STORAGE ----------
 function loadState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      state = {
-        ...state,
-        ...parsed,
-        history: Array.isArray(parsed.history) ? parsed.history : []
-      };
-    }
-  } catch (error) {
-    console.error("Failed to load state:", error);
-  }
+    if (saved) state = { ...state, ...JSON.parse(saved) };
+  } catch {}
 }
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function currency(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0
-  }).format(value);
-}
+// ---------- AUTH ----------
+function login(identifier, password) {
+  if (!identifier || !password) {
+    alert("Fill all fields");
+    return;
+  }
 
-function addHistory(type, title, amount = 0) {
-  state.history.unshift({
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-    type,
-    title,
-    amount,
-    date: new Date().toLocaleString()
-  });
-
-  state.history = state.history.slice(0, 20);
-}
-
-function login(username) {
-  state.user = { username };
+  state.user = { name: identifier };
   saveState();
   render();
 }
@@ -60,214 +58,109 @@ function logout() {
   render();
 }
 
-function earn(amount, title = "Reward added") {
-  state.balance += amount;
-  state.totalEarned += amount;
-  state.tasksCompleted += 1;
-  addHistory("earn", title, amount);
+// ---------- THEME ----------
+function toggleTheme() {
+  state.theme = state.theme === "dark" ? "light" : "dark";
   saveState();
+  applyTheme();
+}
+
+function applyTheme() {
+  document.body.className = state.theme;
+}
+
+// ---------- NAV ----------
+function navigate(view) {
+  state.view = view;
   render();
 }
 
-function withdraw(amount) {
-  if (state.balance < amount) {
-    alert("Not enough balance.");
+// ---------- RENDER ----------
+function render() {
+  const app = document.getElementById("app");
+
+  if (!state.user) {
+    app.innerHTML = `
+      <div class="auth-wrap">
+        <div class="auth-card">
+          <h1>EarnX</h1>
+          <input id="user" placeholder="Username or Email" />
+          <input id="pass" type="password" placeholder="Password" />
+          <button id="loginBtn">Login</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("loginBtn").onclick = () => {
+      login(
+        document.getElementById("user").value,
+        document.getElementById("pass").value
+      );
+    };
+
     return;
   }
 
-  state.balance -= amount;
-  addHistory("withdraw", "Withdrawal requested", -amount);
-  saveState();
-  render();
-}
+  app.innerHTML = `
+    <div class="app">
+      <nav class="sidebar">
+        <h2>EarnX</h2>
+        <button onclick="navigate('home')">Home</button>
+        <button onclick="navigate('discover')">Discover</button>
+        <button onclick="navigate('messages')">Messages</button>
+        <button onclick="navigate('profile')">Profile</button>
+        <button onclick="toggleTheme()">Theme</button>
+        <button onclick="logout()">Logout</button>
+      </nav>
 
-function resetApp() {
-  const confirmed = confirm("Reset all local EarnX data?");
-  if (!confirmed) return;
-
-  localStorage.removeItem(STORAGE_KEY);
-  state = {
-    user: null,
-    balance: 0,
-    totalEarned: 0,
-    tasksCompleted: 0,
-    history: []
-  };
-  render();
-}
-
-function renderAuth() {
-  return `
-    <div class="auth-wrap">
-      <div class="auth-card">
-        <div class="brand">
-          <div class="brand-badge">X</div>
-          <div>
-            <h1>EarnX</h1>
-            <p class="muted">Rewards dashboard</p>
-          </div>
-        </div>
-
-        <h2 class="auth-title">Welcome back</h2>
-        <p class="auth-subtitle">Sign in to continue managing your dashboard.</p>
-
-        <div class="form-row">
-          <input class="input" id="username" placeholder="Enter your username" />
-        </div>
-
-        <button class="btn btn-primary" id="loginBtn">Enter dashboard</button>
-      </div>
+      <main class="content">
+        ${renderView()}
+      </main>
     </div>
   `;
 }
 
-function renderDashboard() {
-  const username = state.user?.username || "User";
-
-  return `
-    <div class="app-shell">
-      <div class="container">
-        <div class="topbar">
-          <div class="topbar-left">
-            <h2>EarnX Dashboard</h2>
-            <p>Hello, ${escapeHtml(username)}. Here is your current activity.</p>
-          </div>
-
-          <div class="topbar-actions">
-            <button class="btn btn-secondary" id="resetBtn">Reset</button>
-            <button class="btn btn-danger" id="logoutBtn">Logout</button>
-          </div>
+function renderView() {
+  switch (state.view) {
+    case "home":
+      return `
+        <div class="stories">
+          ${state.stories
+            .map(s => `<div class="story">${s.user}</div>`)
+            .join("")}
         </div>
 
-        <div class="grid">
-          <section class="card span-4">
-            <div class="stat-label">Available Balance</div>
-            <div class="stat-value">${currency(state.balance)}</div>
-            <div class="stat-foot">Current ready balance</div>
-          </section>
-
-          <section class="card span-4">
-            <div class="stat-label">Total Earned</div>
-            <div class="stat-value">${currency(state.totalEarned)}</div>
-            <div class="stat-foot">Lifetime rewards tracked locally</div>
-          </section>
-
-          <section class="card span-4">
-            <div class="stat-label">Tasks Completed</div>
-            <div class="stat-value">${state.tasksCompleted}</div>
-            <div class="stat-foot">Simple local progress counter</div>
-          </section>
-
-          <section class="card span-6">
-            <h3>Quick Actions</h3>
-            <p class="muted">Use these actions to test and recover the app flow.</p>
-            <div class="actions">
-              <button class="btn btn-primary" id="earn10Btn">Earn $10</button>
-              <button class="btn btn-secondary" id="earn25Btn">Earn $25</button>
-              <button class="btn btn-secondary" id="withdraw10Btn">Withdraw $10</button>
-            </div>
-          </section>
-
-          <section class="card span-6">
-            <h3>Account</h3>
-            <p><strong>User:</strong> ${escapeHtml(username)}</p>
-            <p><strong>Status:</strong> Active</p>
-            <p><strong>Storage:</strong> Local browser state</p>
-            <p class="muted">This is a stable recovery build for your frontend.</p>
-          </section>
-
-          <section class="card span-12">
-            <h3>Recent Activity</h3>
-            ${
-              state.history.length === 0
-                ? `<div class="empty">No activity yet.</div>`
-                : `<div class="activity-list">
-                    ${state.history
-                      .map(
-                        (item) => `
-                          <div class="activity-item">
-                            <div class="activity-main">
-                              <div class="activity-title">${escapeHtml(item.title)}</div>
-                              <div class="activity-meta">${escapeHtml(item.date)}</div>
-                            </div>
-                            <div class="amount ${item.amount >= 0 ? "positive" : ""}">
-                              ${item.amount >= 0 ? "+" : "-"}${currency(Math.abs(item.amount))}
-                            </div>
-                          </div>
-                        `
-                      )
-                      .join("")}
-                  </div>`
-            }
-          </section>
+        <div class="feed">
+          ${state.posts
+            .map(p => `<div class="post"><b>${p.user}</b><p>${p.content}</p></div>`)
+            .join("")}
         </div>
-      </div>
-    </div>
-  `;
-}
+      `;
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+    case "discover":
+      return `
+        <h2>Trending Creators</h2>
+        ${state.creators
+          .map(c => `<div class="card">${c.name} - ${c.fans} fans</div>`)
+          .join("")}
+      `;
 
-function bindEvents() {
-  const loginBtn = document.getElementById("loginBtn");
-  if (loginBtn) {
-    loginBtn.addEventListener("click", () => {
-      const input = document.getElementById("username");
-      const username = input?.value.trim();
+    case "messages":
+      return `
+        <h2>Messages</h2>
+        <p>Private chat UI coming</p>
+      `;
 
-      if (!username) {
-        alert("Please enter a username.");
-        return;
-      }
+    case "profile":
+      return `
+        <h2>${state.user.name}</h2>
+        <p>Your profile</p>
+      `;
 
-      login(username);
-    });
-  }
-
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", logout);
-  }
-
-  const resetBtn = document.getElementById("resetBtn");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", resetApp);
-  }
-
-  const earn10Btn = document.getElementById("earn10Btn");
-  if (earn10Btn) {
-    earn10Btn.addEventListener("click", () => earn(10, "Quick reward"));
-  }
-
-  const earn25Btn = document.getElementById("earn25Btn");
-  if (earn25Btn) {
-    earn25Btn.addEventListener("click", () => earn(25, "Bonus reward"));
-  }
-
-  const withdraw10Btn = document.getElementById("withdraw10Btn");
-  if (withdraw10Btn) {
-    withdraw10Btn.addEventListener("click", () => withdraw(10));
+    default:
+      return `<p>Loading...</p>`;
   }
 }
 
-function render() {
-  const app = document.getElementById("app");
-  if (!app) return;
-
-  app.innerHTML = state.user ? renderDashboard() : renderAuth();
-  bindEvents();
-}
-
-function init() {
-  loadState();
-  render();
-}
-
+// ---------- START ----------
 document.addEventListener("DOMContentLoaded", init);
