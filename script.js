@@ -98,10 +98,10 @@ return String(email || "").trim().toLowerCase();
 
 function escapeHtml(str = "") {
 return String(str)
-.replaceAll("&", "&")
-.replaceAll("<", "<")
-.replaceAll(">", ">")
-.replaceAll('"', """);
+.replaceAll("&", "&amp;")
+.replaceAll("<", "&lt;")
+.replaceAll(">", "&gt;")
+.replaceAll('"', "&quot;");
 }
 
 // ─── Notice ───────────────────────────────────────────────────────────────────
@@ -419,7 +419,6 @@ return `
 </button>
 </div>
 
-```
 <div class="card hero">
   <h2>Follow creators. Watch movement. Build presence.</h2>
   <p>Your feed stays real. Rankings stay public. Private earnings stay protected.</p>
@@ -455,7 +454,6 @@ return `
        </div>`
   }
 </section>
-```
 
 `;
 }
@@ -515,7 +513,6 @@ return `
 </button>
 </div>
 
-```
 <div class="searchbar">
   <input class="input" id="searchInput" placeholder="Search creators, usernames, countries..." value="${escapeHtml(state.ui.searchQuery)}" />
 </div>
@@ -556,7 +553,6 @@ return `
        </div>`
   }
 </section>
-```
 
 `;
 }
@@ -659,7 +655,6 @@ return `
 </button>
 </div>
 
-```
 <div class="card profile-card">
   <div class="profile-head">
     <div class="avatar large">${getInitials(user.displayName)}</div>
@@ -735,7 +730,6 @@ return `
        </div>`
   }
 </section>
-```
 
 `;
 }
@@ -770,7 +764,6 @@ return `
 <button class="btn btn-secondary" data-open-profile="${me.id}">Open profile</button>
 </div>
 
-```
   <div class="setting-card">
     <div class="card-title">Creator Studio</div>
     <p class="card-subtitle">Access your private growth, monetization, and ranking movement.</p>
@@ -802,7 +795,6 @@ return `
     <button class="btn btn-secondary" id="logoutBtn">Logout</button>
   </div>
 </div>
-```
 
 `;
 }

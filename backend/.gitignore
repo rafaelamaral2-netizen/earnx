@@ -1,3 +1,6 @@
 node_modules/
 earnx.db
+earnx.db-shm
+earnx.db-wal
+uploads/
 .env
