@@ -1,11 +1,13 @@
 /* =========================================================
-   EARNX — SCRIPT.JS — PHASE 1 + 2 + 3 + 4 + 5
-   State + Feed + Discover + Profile + Messages
+   EARNX — SCRIPT.JS — PHASE 1 + 2 + 3 + 4 + 5 + 6
+   State + Feed + Discover + Profile + Messages + Wallet + Settings
    ========================================================= */
 
 /* -------------------------
    STATE
 ------------------------- */
+const STORAGE_KEY = "earnx_app_state_v1";
+
 const initialUI = {
   appView: "home",
   discoverTab: "global",
@@ -15,26 +17,37 @@ const initialUI = {
   theme: "dark",
   messagesView: "inbox",      // inbox | chat
   activeConvoUserId: null,
-  feedFilter: "following"
+  feedFilter: "following",
+  settingsTab: "preferences"  // preferences | notifications | privacy | account
 };
 
-let state = {
-  sessionUserId: "u1",
-  ui: loadUIState(),
-  users: getMockUsers(),
-  posts: getMockPosts(),
-  follows: getMockFollows(),
-  messages: getMockMessages(),
-  localLikes: {}
-};
+let state = createInitialState();
 
 /* -------------------------
    BOOT
 ------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
+  loadPersistedState();
   applyTheme();
   render();
 });
+
+/* -------------------------
+   INITIAL STATE
+------------------------- */
+function createInitialState() {
+  return {
+    sessionUserId: "u1",
+    ui: { ...initialUI },
+    users: getMockUsers(),
+    posts: getMockPosts(),
+    follows: getMockFollows(),
+    messages: getMockMessages(),
+    localLikes: {},
+    wallet: getMockWallet(),
+    settings: getMockSettings()
+  };
+}
 
 /* -------------------------
    MOCK DATA
@@ -184,19 +197,100 @@ function getMockMessages() {
   ];
 }
 
+function getMockWallet() {
+  return {
+    available: 4250,
+    pending: 1280,
+    reserved: 320,
+    paidOut: 12940,
+    recentTransactions: [
+      {
+        id: "t1",
+        title: "Subscription payout",
+        subtitle: "From premium subscribers",
+        amount: 420,
+        type: "credit",
+        status: "completed",
+        createdAt: Date.now() - 1000 * 60 * 60 * 6
+      },
+      {
+        id: "t2",
+        title: "Reserved funds",
+        subtitle: "Pending release",
+        amount: 180,
+        type: "reserved",
+        status: "pending",
+        createdAt: Date.now() - 1000 * 60 * 60 * 18
+      },
+      {
+        id: "t3",
+        title: "Payout sent",
+        subtitle: "Transferred to creator account",
+        amount: 950,
+        type: "debit",
+        status: "completed",
+        createdAt: Date.now() - 1000 * 60 * 60 * 34
+      }
+    ]
+  };
+}
+
+function getMockSettings() {
+  return {
+    notifications: {
+      app: true,
+      messages: true,
+      marketing: false
+    },
+    privacy: {
+      privateProfile: false,
+      hideActivity: false
+    },
+    preferences: {
+      compactFeed: false,
+      autoplayMedia: true
+    },
+    account: {
+      email: "rafael@example.com",
+      creatorMode: true
+    }
+  };
+}
+
 /* -------------------------
-   STORAGE
+   PERSISTENCE
 ------------------------- */
-function loadUIState() {
+function saveState() {
   try {
-    return { ...initialUI, ...JSON.parse(localStorage.getItem("ui")) };
-  } catch {
-    return { ...initialUI };
+    const payload = {
+      ui: state.ui,
+      follows: state.follows,
+      messages: state.messages,
+      localLikes: state.localLikes,
+      wallet: state.wallet,
+      settings: state.settings
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (err) {
+    console.warn("Could not save state", err);
   }
 }
 
-function saveUIState() {
-  localStorage.setItem("ui", JSON.stringify(state.ui));
+function loadPersistedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+
+    state.ui = { ...state.ui, ...(parsed.ui || {}) };
+    state.follows = parsed.follows || state.follows;
+    state.messages = parsed.messages || state.messages;
+    state.localLikes = parsed.localLikes || state.localLikes;
+    state.wallet = parsed.wallet || state.wallet;
+    state.settings = parsed.settings || state.settings;
+  } catch (err) {
+    console.warn("Could not load persisted state", err);
+  }
 }
 
 /* -------------------------
@@ -262,6 +356,14 @@ function formatChatTime(ts) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatMoney(value) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(value);
+}
+
 /* -------------------------
    THEME
 ------------------------- */
@@ -271,7 +373,7 @@ function applyTheme() {
 
 function toggleTheme() {
   state.ui.theme = state.ui.theme === "dark" ? "light" : "dark";
-  saveUIState();
+  saveState();
   applyTheme();
   render();
 }
@@ -291,14 +393,14 @@ function setAppView(view) {
     state.ui.profileUserId = state.sessionUserId;
   }
 
-  saveUIState();
+  saveState();
   render();
 }
 
 function setProfile(id) {
   state.ui.profileUserId = id;
   state.ui.appView = "profile";
-  saveUIState();
+  saveState();
   render();
 }
 
@@ -307,14 +409,14 @@ function openChat(userId) {
   state.ui.messagesView = "chat";
   state.ui.activeConvoUserId = userId;
   markConversationAsRead(userId);
-  saveUIState();
+  saveState();
   render();
 }
 
 function goInbox() {
   state.ui.messagesView = "inbox";
   state.ui.activeConvoUserId = null;
-  saveUIState();
+  saveState();
   render();
 }
 
@@ -347,6 +449,7 @@ function filteredPosts() {
 
 function toggleLike(id) {
   state.localLikes[id] = !state.localLikes[id];
+  saveState();
   render();
 }
 
@@ -397,6 +500,7 @@ function toggleFollow(targetUserId) {
     });
   }
 
+  saveState();
   render();
 }
 
@@ -490,6 +594,24 @@ function sendMessage(toUserId, text) {
     createdAt: Date.now()
   });
 
+  saveState();
+  render();
+}
+
+/* -------------------------
+   SETTINGS
+------------------------- */
+function setSettingsTab(tab) {
+  state.ui.settingsTab = tab;
+  saveState();
+  render();
+}
+
+function updatePreference(path, value) {
+  const [group, key] = path.split(".");
+  if (!state.settings[group]) return;
+  state.settings[group][key] = value;
+  saveState();
   render();
 }
 
@@ -554,8 +676,8 @@ function renderPage() {
   if (state.ui.appView === "discover") return renderDiscover();
   if (state.ui.appView === "profile") return renderProfile();
   if (state.ui.appView === "messages") return renderMessages();
-  if (state.ui.appView === "wallet") return renderWalletPlaceholder();
-  if (state.ui.appView === "settings") return renderSettingsPlaceholder();
+  if (state.ui.appView === "wallet") return renderWallet();
+  if (state.ui.appView === "settings") return renderSettings();
   return "";
 }
 
@@ -933,23 +1055,241 @@ function renderBubble(message) {
 }
 
 /* -------------------------
-   PLACEHOLDERS
+   WALLET UI
 ------------------------- */
-function renderWalletPlaceholder() {
+function renderWallet() {
+  const w = state.wallet;
+
   return `
-    <section class="panel" style="padding:20px;">
-      <h2 class="section-title">Wallet</h2>
-      <p class="text-muted">Wallet logic will be activated in Phase 6.</p>
-    </section>
+    <div class="wallet-shell">
+      <section class="wallet-hero">
+        <div class="wallet-hero-top">
+          <div>
+            <div class="wallet-kicker">Wallet</div>
+            <div class="wallet-balance-label">Available balance</div>
+            <h1 class="wallet-balance">${formatMoney(w.available)}</h1>
+            <div class="wallet-balance-sub">Premium creator earnings and payout visibility</div>
+          </div>
+          <div class="wallet-action-row">
+            <button class="btn btn-primary">Withdraw</button>
+            <button class="btn btn-secondary">Export</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="wallet-grid">
+        <div class="wallet-card wallet-card-positive">
+          <div class="wallet-card-label">Available</div>
+          <h3 class="wallet-card-value">${formatMoney(w.available)}</h3>
+          <div class="wallet-card-meta">Ready to use</div>
+        </div>
+
+        <div class="wallet-card">
+          <div class="wallet-card-label">Pending</div>
+          <h3 class="wallet-card-value">${formatMoney(w.pending)}</h3>
+          <div class="wallet-card-meta">Awaiting release</div>
+        </div>
+
+        <div class="wallet-card wallet-card-warning">
+          <div class="wallet-card-label">Reserved</div>
+          <h3 class="wallet-card-value">${formatMoney(w.reserved)}</h3>
+          <div class="wallet-card-meta">Protected balance</div>
+        </div>
+
+        <div class="wallet-card">
+          <div class="wallet-card-label">Paid out</div>
+          <h3 class="wallet-card-value">${formatMoney(w.paidOut)}</h3>
+          <div class="wallet-card-meta">Lifetime payouts</div>
+        </div>
+      </section>
+
+      <section class="wallet-panels">
+        <div class="wallet-panel">
+          <div class="wallet-panel-head">
+            <div>
+              <h3>Recent activity</h3>
+              <p>Your latest transactions</p>
+            </div>
+          </div>
+
+          <div class="wallet-activity-list">
+            ${w.recentTransactions.map(renderTransaction).join("")}
+          </div>
+        </div>
+
+        <div class="wallet-panel">
+          <div class="wallet-panel-head">
+            <div>
+              <h3>Revenue summary</h3>
+              <p>Quick performance indicators</p>
+            </div>
+          </div>
+
+          <div class="revenue-summary">
+            <div class="revenue-pill-row">
+              <span class="revenue-pill">Monthly growth +14%</span>
+              <span class="revenue-pill">Top source subscriptions</span>
+              <span class="revenue-pill">Retention stable</span>
+            </div>
+            <div class="revenue-visual">
+              Revenue visualization placeholder
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   `;
 }
 
-function renderSettingsPlaceholder() {
+function renderTransaction(tx) {
   return `
-    <section class="panel" style="padding:20px;">
-      <h2 class="section-title">Settings</h2>
-      <p class="text-muted">Settings logic will be activated in Phase 6.</p>
-    </section>
+    <div class="wallet-activity-row">
+      <div class="wallet-activity-left">
+        <div class="wallet-activity-icon">💸</div>
+        <div>
+          <div class="wallet-activity-title">${tx.title}</div>
+          <div class="wallet-activity-sub">${tx.subtitle} · ${formatRelative(tx.createdAt)}</div>
+          <div class="wallet-activity-status">${tx.status}</div>
+        </div>
+      </div>
+      <div class="wallet-activity-amount ${tx.type === "credit" ? "positive" : tx.type === "debit" ? "negative" : ""}">
+        ${tx.type === "debit" ? "-" : tx.type === "credit" ? "+" : ""}${formatMoney(tx.amount)}
+      </div>
+    </div>
+  `;
+}
+
+/* -------------------------
+   SETTINGS UI
+------------------------- */
+function renderSettings() {
+  return `
+    <div class="settings-shell">
+      <aside class="settings-nav">
+        <button class="settings-nav-btn ${state.ui.settingsTab === "preferences" ? "active" : ""}" data-settings-tab="preferences">Preferences</button>
+        <button class="settings-nav-btn ${state.ui.settingsTab === "notifications" ? "active" : ""}" data-settings-tab="notifications">Notifications</button>
+        <button class="settings-nav-btn ${state.ui.settingsTab === "privacy" ? "active" : ""}" data-settings-tab="privacy">Privacy</button>
+        <button class="settings-nav-btn ${state.ui.settingsTab === "account" ? "active" : ""}" data-settings-tab="account">Account</button>
+      </aside>
+
+      <section class="settings-main">
+        ${renderSettingsContent()}
+      </section>
+    </div>
+  `;
+}
+
+function renderSettingsContent() {
+  if (state.ui.settingsTab === "preferences") {
+    return `
+      <div class="settings-section">
+        <div class="settings-section-head">
+          <h3>Preferences</h3>
+          <p>Adjust how the product feels and behaves.</p>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-title">Theme</div>
+            <div class="settings-row-sub">Switch between light and dark mode.</div>
+          </div>
+          <div class="settings-control">
+            <button class="btn btn-secondary" id="themeToggleInlineBtn">${state.ui.theme === "dark" ? "Dark" : "Light"}</button>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-title">Compact feed</div>
+            <div class="settings-row-sub">Reduce feed density for faster scanning.</div>
+          </div>
+          <div class="settings-control">
+            <button class="switch ${state.settings.preferences.compactFeed ? "active" : ""}" data-toggle-setting="preferences.compactFeed"></button>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-title">Autoplay media</div>
+            <div class="settings-row-sub">Automatically play eligible media previews.</div>
+          </div>
+          <div class="settings-control">
+            <button class="switch ${state.settings.preferences.autoplayMedia ? "active" : ""}" data-toggle-setting="preferences.autoplayMedia"></button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (state.ui.settingsTab === "notifications") {
+    return `
+      <div class="settings-section">
+        <div class="settings-section-head">
+          <h3>Notifications</h3>
+          <p>Control how EARNX keeps you informed.</p>
+        </div>
+
+        ${renderToggleRow("App notifications", "General product notifications.", "notifications.app", state.settings.notifications.app)}
+        ${renderToggleRow("Messages", "Be notified when someone sends you a message.", "notifications.messages", state.settings.notifications.messages)}
+        ${renderToggleRow("Marketing updates", "Receive occasional product and growth updates.", "notifications.marketing", state.settings.notifications.marketing)}
+      </div>
+    `;
+  }
+
+  if (state.ui.settingsTab === "privacy") {
+    return `
+      <div class="settings-section">
+        <div class="settings-section-head">
+          <h3>Privacy</h3>
+          <p>Decide how visible your activity should be.</p>
+        </div>
+
+        ${renderToggleRow("Private profile", "Limit profile discoverability.", "privacy.privateProfile", state.settings.privacy.privateProfile)}
+        ${renderToggleRow("Hide activity", "Reduce public visibility of your activity.", "privacy.hideActivity", state.settings.privacy.hideActivity)}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <h3>Account</h3>
+        <p>Review your account and creator mode setup.</p>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="settings-field" value="${state.settings.account.email}" readonly />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Creator mode</label>
+          <input class="settings-field" value="${state.settings.account.creatorMode ? "Enabled" : "Disabled"}" readonly />
+        </div>
+      </div>
+
+      <div class="soft-divider"></div>
+
+      <div class="account-card">
+        <div class="account-card-title">Account status</div>
+        <div class="account-card-sub">Your EARNX creator profile is active and ready for scaling.</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderToggleRow(title, subtitle, path, enabled) {
+  return `
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">${title}</div>
+        <div class="settings-row-sub">${subtitle}</div>
+      </div>
+      <div class="settings-control">
+        <button class="switch ${enabled ? "active" : ""}" data-toggle-setting="${path}"></button>
+      </div>
+    </div>
   `;
 }
 
@@ -964,6 +1304,7 @@ function bindEvents() {
   document.querySelectorAll("[data-feed-filter]").forEach(btn => {
     btn.onclick = () => {
       state.ui.feedFilter = btn.dataset.feedFilter;
+      saveState();
       render();
     };
   });
@@ -979,6 +1320,7 @@ function bindEvents() {
   document.querySelectorAll("[data-cat]").forEach(btn => {
     btn.onclick = () => {
       state.ui.discoverCategory = btn.dataset.cat;
+      saveState();
       render();
     };
   });
@@ -995,10 +1337,24 @@ function bindEvents() {
     btn.onclick = () => openChat(btn.dataset.openChat);
   });
 
+  document.querySelectorAll("[data-settings-tab]").forEach(btn => {
+    btn.onclick = () => setSettingsTab(btn.dataset.settingsTab);
+  });
+
+  document.querySelectorAll("[data-toggle-setting]").forEach(btn => {
+    btn.onclick = () => {
+      const path = btn.dataset.toggleSetting;
+      const [group, key] = path.split(".");
+      const current = state.settings[group][key];
+      updatePreference(path, !current);
+    };
+  });
+
   const searchInput = document.getElementById("searchInput");
   if (searchInput) {
     searchInput.oninput = e => {
       state.ui.searchQuery = e.target.value;
+      saveState();
       render();
     };
   }
@@ -1006,6 +1362,11 @@ function bindEvents() {
   const themeToggleBtn = document.getElementById("themeToggleBtn");
   if (themeToggleBtn) {
     themeToggleBtn.onclick = toggleTheme;
+  }
+
+  const themeToggleInlineBtn = document.getElementById("themeToggleInlineBtn");
+  if (themeToggleInlineBtn) {
+    themeToggleInlineBtn.onclick = toggleTheme;
   }
 
   const backToInboxBtn = document.getElementById("backToInboxBtn");
