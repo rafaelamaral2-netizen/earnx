@@ -1,24 +1,25 @@
 /* =========================================================
-   EARNX — SCRIPT.JS — PHASE 1 + 2 + 3 + 4 + 5 + 6
-   State + Feed + Discover + Profile + Messages + Wallet + Settings
-   ========================================================= */
+   EARNX — PHASE 8
+   Full frontend + auth demo + session + navigation
+   Replaces entire script.js
+========================================================= */
+
+const STORAGE_KEY = "earnx_phase8_app";
 
 /* -------------------------
-   STATE
+   INITIAL UI
 ------------------------- */
-const STORAGE_KEY = "earnx_app_state_v1";
-
 const initialUI = {
-  appView: "home",
-  discoverTab: "global",
+  authView: "login",           // login | signup
+  appView: "home",             // home | discover | messages | profile | wallet | settings
   discoverCategory: "all",
-  profileUserId: null,
   searchQuery: "",
   theme: "dark",
-  messagesView: "inbox",      // inbox | chat
+  messagesView: "inbox",       // inbox | chat
   activeConvoUserId: null,
   feedFilter: "following",
-  settingsTab: "preferences"  // preferences | notifications | privacy | account
+  profileUserId: null,
+  settingsTab: "preferences"
 };
 
 let state = createInitialState();
@@ -27,7 +28,7 @@ let state = createInitialState();
    BOOT
 ------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
-  loadPersistedState();
+  loadState();
   applyTheme();
   render();
 });
@@ -37,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
 ------------------------- */
 function createInitialState() {
   return {
-    sessionUserId: "u1",
+    sessionUserId: null,
     ui: { ...initialUI },
     users: getMockUsers(),
     posts: getMockPosts(),
@@ -56,8 +57,10 @@ function getMockUsers() {
   return [
     {
       id: "u1",
-      displayName: "Rafael Amaral",
       username: "rafael",
+      email: "rafael@test.com",
+      password: "1234",
+      displayName: "Rafael Amaral",
       country: "PR",
       verified: true,
       category: "tech",
@@ -67,8 +70,10 @@ function getMockUsers() {
     },
     {
       id: "u2",
-      displayName: "Sofia Vega",
       username: "sofia",
+      email: "sofia@test.com",
+      password: "1234",
+      displayName: "Sofia Vega",
       country: "MX",
       verified: true,
       category: "lifestyle",
@@ -78,8 +83,10 @@ function getMockUsers() {
     },
     {
       id: "u3",
-      displayName: "Alex Rivera",
       username: "alex",
+      email: "alex@test.com",
+      password: "1234",
+      displayName: "Alex Rivera",
       country: "PR",
       verified: false,
       category: "gaming",
@@ -89,8 +96,10 @@ function getMockUsers() {
     },
     {
       id: "u4",
-      displayName: "Luna Cruz",
       username: "luna",
+      email: "luna@test.com",
+      password: "1234",
+      displayName: "Luna Cruz",
       country: "ES",
       verified: true,
       category: "art",
@@ -251,45 +260,34 @@ function getMockSettings() {
       autoplayMedia: true
     },
     account: {
-      email: "rafael@example.com",
       creatorMode: true
     }
   };
 }
 
 /* -------------------------
-   PERSISTENCE
+   STORAGE
 ------------------------- */
 function saveState() {
   try {
-    const payload = {
-      ui: state.ui,
-      follows: state.follows,
-      messages: state.messages,
-      localLikes: state.localLikes,
-      wallet: state.wallet,
-      settings: state.settings
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (err) {
     console.warn("Could not save state", err);
   }
 }
 
-function loadPersistedState() {
+function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const parsed = JSON.parse(raw);
-
-    state.ui = { ...state.ui, ...(parsed.ui || {}) };
-    state.follows = parsed.follows || state.follows;
-    state.messages = parsed.messages || state.messages;
-    state.localLikes = parsed.localLikes || state.localLikes;
-    state.wallet = parsed.wallet || state.wallet;
-    state.settings = parsed.settings || state.settings;
+    state = {
+      ...createInitialState(),
+      ...parsed,
+      ui: { ...initialUI, ...(parsed.ui || {}) }
+    };
   } catch (err) {
-    console.warn("Could not load persisted state", err);
+    console.warn("Could not load state", err);
   }
 }
 
@@ -297,7 +295,7 @@ function loadPersistedState() {
    HELPERS
 ------------------------- */
 function currentUser() {
-  return state.users.find(u => u.id === state.sessionUserId);
+  return state.users.find(u => u.id === state.sessionUserId) || null;
 }
 
 function userById(id) {
@@ -362,6 +360,82 @@ function formatMoney(value) {
     currency: "USD",
     maximumFractionDigits: 0
   }).format(value);
+}
+
+/* -------------------------
+   AUTH
+------------------------- */
+function login(identifier, password) {
+  const value = identifier.trim().toLowerCase();
+
+  const user = state.users.find(
+    u =>
+      (u.email && u.email.toLowerCase() === value || u.username.toLowerCase() === value) &&
+      u.password === password
+  );
+
+  if (!user) {
+    alert("Invalid credentials");
+    return;
+  }
+
+  state.sessionUserId = user.id;
+  state.ui.appView = "home";
+  state.ui.profileUserId = user.id;
+  saveState();
+  render();
+}
+
+function signup({ displayName, username, email, password }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedUsername = username.trim().toLowerCase();
+
+  const emailTaken = state.users.some(u => u.email && u.email.toLowerCase() === normalizedEmail);
+  const usernameTaken = state.users.some(u => u.username.toLowerCase() === normalizedUsername);
+
+  if (emailTaken) {
+    alert("That email already exists");
+    return;
+  }
+
+  if (usernameTaken) {
+    alert("That username already exists");
+    return;
+  }
+
+  const id = "u" + (state.users.length + 1);
+
+  const newUser = {
+    id,
+    displayName: displayName.trim(),
+    username: normalizedUsername,
+    email: normalizedEmail,
+    password,
+    country: "PR",
+    verified: false,
+    category: "creator",
+    bio: "New creator on EARNX.",
+    avatarUrl: "",
+    coverUrl: ""
+  };
+
+  state.users.push(newUser);
+  state.sessionUserId = newUser.id;
+  state.ui.authView = "login";
+  state.ui.appView = "home";
+  state.ui.profileUserId = newUser.id;
+  saveState();
+  render();
+}
+
+function logout() {
+  state.sessionUserId = null;
+  state.ui.authView = "login";
+  state.ui.appView = "home";
+  state.ui.activeConvoUserId = null;
+  state.ui.messagesView = "inbox";
+  saveState();
+  render();
 }
 
 /* -------------------------
@@ -616,20 +690,129 @@ function updatePreference(path, value) {
 }
 
 /* -------------------------
-   RENDER
+   RENDER ROOT
 ------------------------- */
 function render() {
   const app = document.getElementById("app");
   if (!app) return;
 
-  app.innerHTML = `
+  if (!state.sessionUserId) {
+    app.innerHTML = renderAuthShell();
+  } else {
+    app.innerHTML = renderAppShell();
+  }
+
+  bindEvents();
+}
+
+/* -------------------------
+   AUTH UI
+------------------------- */
+function renderAuthShell() {
+  return `
+    <main class="page">
+      <section class="shell">
+        <div class="brand">
+          <div class="brand-icon">X</div>
+          <div class="brand-copy">
+            <h1>EarnX</h1>
+            <p>Creator economy platform</p>
+          </div>
+        </div>
+
+        <div class="intro">
+          <h2>A premium social platform built around creator ambition, audience reach, and public ranking momentum.</h2>
+          <p>Designed for creators who want stronger positioning, cleaner monetization, and a product that feels elevated from the first touch.</p>
+        </div>
+
+        ${
+          state.ui.authView === "login"
+            ? renderLoginCard()
+            : renderSignupCard()
+        }
+      </section>
+    </main>
+  `;
+}
+
+function renderLoginCard() {
+  return `
+    <div class="card">
+      <h3>Login</h3>
+      <p class="card-sub">Enter your creator account.</p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label class="label" for="loginIdentifier">Email or username</label>
+          <input class="input" id="loginIdentifier" type="text" placeholder="you@example.com or @username" />
+        </div>
+
+        <div class="field">
+          <label class="label" for="loginPassword">Password</label>
+          <input class="input" id="loginPassword" type="password" placeholder="••••••••" />
+        </div>
+
+        <button class="button" type="submit">Login</button>
+      </form>
+
+      <div class="links">
+        <a href="#" id="goSignup">Create account</a>
+      </div>
+
+      <div class="note">Demo account: rafael@test.com / 1234</div>
+    </div>
+  `;
+}
+
+function renderSignupCard() {
+  return `
+    <div class="card">
+      <h3>Create account</h3>
+      <p class="card-sub">Start building your EARNX identity.</p>
+
+      <form id="signupForm">
+        <div class="field">
+          <label class="label" for="signupDisplayName">Display name</label>
+          <input class="input" id="signupDisplayName" type="text" placeholder="Your name" />
+        </div>
+
+        <div class="field">
+          <label class="label" for="signupUsername">Username</label>
+          <input class="input" id="signupUsername" type="text" placeholder="username" />
+        </div>
+
+        <div class="field">
+          <label class="label" for="signupEmail">Email</label>
+          <input class="input" id="signupEmail" type="email" placeholder="you@example.com" />
+        </div>
+
+        <div class="field">
+          <label class="label" for="signupPassword">Password</label>
+          <input class="input" id="signupPassword" type="password" placeholder="••••••••" />
+        </div>
+
+        <button class="button" type="submit">Create account</button>
+      </form>
+
+      <div class="links">
+        <a href="#" id="goLogin">Back to login</a>
+      </div>
+
+      <div class="note">Account is stored locally in your browser for demo purposes.</div>
+    </div>
+  `;
+}
+
+/* -------------------------
+   APP SHELL
+------------------------- */
+function renderAppShell() {
+  return `
     ${renderNav()}
     <main class="page-content">
       ${renderPage()}
     </main>
   `;
-
-  bindEvents();
 }
 
 /* -------------------------
@@ -659,10 +842,11 @@ function renderNav() {
         <button class="nav-btn ${state.ui.appView === "settings" ? "active" : ""}" data-nav="settings">Settings</button>
       </div>
 
-      <div style="margin-top:20px;">
+      <div style="margin-top:20px;" class="stack">
         <button class="btn btn-primary" id="themeToggleBtn">
           ${state.ui.theme === "dark" ? "Light Mode" : "Dark Mode"}
         </button>
+        <button class="btn btn-secondary" id="logoutBtn">Logout</button>
       </div>
     </nav>
   `;
@@ -770,7 +954,7 @@ function renderDiscover() {
     </div>
 
     <div class="cats-strip" style="margin-top:12px;">
-      ${["all", "tech", "lifestyle", "gaming", "art"].map(cat => `
+      ${["all", "tech", "lifestyle", "gaming", "art", "creator"].map(cat => `
         <button class="cat-chip ${state.ui.discoverCategory === cat ? "active" : ""}" data-cat="${cat}">
           ${cat}
         </button>
@@ -1250,6 +1434,8 @@ function renderSettingsContent() {
     `;
   }
 
+  const me = currentUser();
+
   return `
     <div class="settings-section">
       <div class="settings-section-head">
@@ -1260,7 +1446,7 @@ function renderSettingsContent() {
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Email</label>
-          <input class="settings-field" value="${state.settings.account.email}" readonly />
+          <input class="settings-field" value="${me?.email || ""}" readonly />
         </div>
 
         <div class="form-group">
@@ -1297,6 +1483,49 @@ function renderToggleRow(title, subtitle, path, enabled) {
    EVENTS
 ------------------------- */
 function bindEvents() {
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) {
+    loginForm.onsubmit = e => {
+      e.preventDefault();
+      const identifier = document.getElementById("loginIdentifier").value;
+      const password = document.getElementById("loginPassword").value;
+      login(identifier, password);
+    };
+  }
+
+  const signupForm = document.getElementById("signupForm");
+  if (signupForm) {
+    signupForm.onsubmit = e => {
+      e.preventDefault();
+      signup({
+        displayName: document.getElementById("signupDisplayName").value,
+        username: document.getElementById("signupUsername").value,
+        email: document.getElementById("signupEmail").value,
+        password: document.getElementById("signupPassword").value
+      });
+    };
+  }
+
+  const goSignup = document.getElementById("goSignup");
+  if (goSignup) {
+    goSignup.onclick = e => {
+      e.preventDefault();
+      state.ui.authView = "signup";
+      saveState();
+      render();
+    };
+  }
+
+  const goLogin = document.getElementById("goLogin");
+  if (goLogin) {
+    goLogin.onclick = e => {
+      e.preventDefault();
+      state.ui.authView = "login";
+      saveState();
+      render();
+    };
+  }
+
   document.querySelectorAll("[data-nav]").forEach(btn => {
     btn.onclick = () => setAppView(btn.dataset.nav);
   });
@@ -1369,6 +1598,11 @@ function bindEvents() {
     themeToggleInlineBtn.onclick = toggleTheme;
   }
 
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.onclick = logout;
+  }
+
   const backToInboxBtn = document.getElementById("backToInboxBtn");
   if (backToInboxBtn) {
     backToInboxBtn.onclick = goInbox;
@@ -1381,6 +1615,7 @@ function bindEvents() {
       const textarea = document.getElementById("chatTextarea");
       if (!textarea) return;
       sendMessage(state.ui.activeConvoUserId, textarea.value);
+      textarea.value = "";
     };
   }
 }
