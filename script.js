@@ -1,6 +1,6 @@
 /* =========================================================
-   EARNX — SCRIPT.JS — PHASE 1 + 2 + 3 + 4
-   State + Feed + Discover + Profile
+   EARNX — SCRIPT.JS — PHASE 1 + 2 + 3 + 4 + 5
+   State + Feed + Discover + Profile + Messages
    ========================================================= */
 
 /* -------------------------
@@ -13,7 +13,7 @@ const initialUI = {
   profileUserId: null,
   searchQuery: "",
   theme: "dark",
-  messagesView: "inbox",
+  messagesView: "inbox",      // inbox | chat
   activeConvoUserId: null,
   feedFilter: "following"
 };
@@ -24,7 +24,7 @@ let state = {
   users: getMockUsers(),
   posts: getMockPosts(),
   follows: getMockFollows(),
-  messages: [],
+  messages: getMockMessages(),
   localLikes: {}
 };
 
@@ -139,6 +139,51 @@ function getMockFollows() {
   ];
 }
 
+function getMockMessages() {
+  return [
+    {
+      id: "m1",
+      fromUserId: "u2",
+      toUserId: "u1",
+      text: "Hey, thanks for the follow.",
+      read: true,
+      createdAt: Date.now() - 1000 * 60 * 60 * 10
+    },
+    {
+      id: "m2",
+      fromUserId: "u1",
+      toUserId: "u2",
+      text: "Of course. Your profile looks strong.",
+      read: true,
+      createdAt: Date.now() - 1000 * 60 * 60 * 9
+    },
+    {
+      id: "m3",
+      fromUserId: "u3",
+      toUserId: "u1",
+      text: "We should connect this week.",
+      read: false,
+      createdAt: Date.now() - 1000 * 60 * 60 * 4
+    },
+    {
+      id: "m4",
+      fromUserId: "u1",
+      toUserId: "u3",
+      text: "Definitely, let's line it up.",
+      read: true,
+      createdAt: Date.now() - 1000 * 60 * 60 * 3
+    },
+    {
+      id: "m5",
+      fromUserId: "u4",
+      toUserId: "u1",
+      text: "Loved the direction of EARNX.",
+      read: false,
+      createdAt: Date.now() - 1000 * 60 * 70
+    }
+  ];
+}
+
 /* -------------------------
    STORAGE
 ------------------------- */
@@ -212,6 +257,11 @@ function formatRelative(ts) {
   return `${days}d`;
 }
 
+function formatChatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 /* -------------------------
    THEME
 ------------------------- */
@@ -231,9 +281,16 @@ function toggleTheme() {
 ------------------------- */
 function setAppView(view) {
   state.ui.appView = view;
+
+  if (view !== "messages") {
+    state.ui.messagesView = "inbox";
+    state.ui.activeConvoUserId = null;
+  }
+
   if (view === "profile" && !state.ui.profileUserId) {
     state.ui.profileUserId = state.sessionUserId;
   }
+
   saveUIState();
   render();
 }
@@ -241,6 +298,22 @@ function setAppView(view) {
 function setProfile(id) {
   state.ui.profileUserId = id;
   state.ui.appView = "profile";
+  saveUIState();
+  render();
+}
+
+function openChat(userId) {
+  state.ui.appView = "messages";
+  state.ui.messagesView = "chat";
+  state.ui.activeConvoUserId = userId;
+  markConversationAsRead(userId);
+  saveUIState();
+  render();
+}
+
+function goInbox() {
+  state.ui.messagesView = "inbox";
+  state.ui.activeConvoUserId = null;
   saveUIState();
   render();
 }
@@ -343,6 +416,84 @@ function renderAvatar(user, extraClass = "") {
 }
 
 /* -------------------------
+   MESSAGES
+------------------------- */
+function getConversations() {
+  const me = state.sessionUserId;
+  const map = new Map();
+
+  state.messages.forEach(message => {
+    const isMine = message.fromUserId === me;
+    const isToMe = message.toUserId === me;
+    if (!isMine && !isToMe) return;
+
+    const otherId = isMine ? message.toUserId : message.fromUserId;
+    const existing = map.get(otherId);
+
+    if (!existing || existing.lastMessage.createdAt < message.createdAt) {
+      map.set(otherId, {
+        userId: otherId,
+        lastMessage: message
+      });
+    }
+  });
+
+  return Array.from(map.values()).sort(
+    (a, b) => b.lastMessage.createdAt - a.lastMessage.createdAt
+  );
+}
+
+function getThread(userId) {
+  const me = state.sessionUserId;
+
+  return state.messages
+    .filter(
+      m =>
+        (m.fromUserId === me && m.toUserId === userId) ||
+        (m.fromUserId === userId && m.toUserId === me)
+    )
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+function unreadCountForUser(userId) {
+  const me = state.sessionUserId;
+  return state.messages.filter(
+    m => m.fromUserId === userId && m.toUserId === me && !m.read
+  ).length;
+}
+
+function totalUnreadCount() {
+  const me = state.sessionUserId;
+  return state.messages.filter(m => m.toUserId === me && !m.read).length;
+}
+
+function markConversationAsRead(userId) {
+  const me = state.sessionUserId;
+  state.messages = state.messages.map(m => {
+    if (m.fromUserId === userId && m.toUserId === me) {
+      return { ...m, read: true };
+    }
+    return m;
+  });
+}
+
+function sendMessage(toUserId, text) {
+  const value = text.trim();
+  if (!value) return;
+
+  state.messages.push({
+    id: "m" + (state.messages.length + 1),
+    fromUserId: state.sessionUserId,
+    toUserId,
+    text: value,
+    read: false,
+    createdAt: Date.now()
+  });
+
+  render();
+}
+
+/* -------------------------
    RENDER
 ------------------------- */
 function render() {
@@ -363,6 +514,8 @@ function render() {
    NAV UI
 ------------------------- */
 function renderNav() {
+  const unread = totalUnreadCount();
+
   return `
     <nav class="sidebar">
       <div class="brand">
@@ -376,7 +529,9 @@ function renderNav() {
       <div class="nav-group">
         <button class="nav-btn ${state.ui.appView === "home" ? "active" : ""}" data-nav="home">Home</button>
         <button class="nav-btn ${state.ui.appView === "discover" ? "active" : ""}" data-nav="discover">Discover</button>
-        <button class="nav-btn ${state.ui.appView === "messages" ? "active" : ""}" data-nav="messages">Messages</button>
+        <button class="nav-btn ${state.ui.appView === "messages" ? "active" : ""}" data-nav="messages">
+          Messages ${unread > 0 ? `<span class="nav-unread">${unread}</span>` : ""}
+        </button>
         <button class="nav-btn ${state.ui.appView === "profile" ? "active" : ""}" data-nav="profile">Profile</button>
         <button class="nav-btn ${state.ui.appView === "wallet" ? "active" : ""}" data-nav="wallet">Wallet</button>
         <button class="nav-btn ${state.ui.appView === "settings" ? "active" : ""}" data-nav="settings">Settings</button>
@@ -398,7 +553,7 @@ function renderPage() {
   if (state.ui.appView === "home") return renderFeed();
   if (state.ui.appView === "discover") return renderDiscover();
   if (state.ui.appView === "profile") return renderProfile();
-  if (state.ui.appView === "messages") return renderMessagesPlaceholder();
+  if (state.ui.appView === "messages") return renderMessages();
   if (state.ui.appView === "wallet") return renderWalletPlaceholder();
   if (state.ui.appView === "settings") return renderSettingsPlaceholder();
   return "";
@@ -602,7 +757,7 @@ function renderProfile() {
                 <button class="btn btn-primary" data-follow="${profile.id}">
                   ${followed ? "Following" : "Follow"}
                 </button>
-                <button class="btn btn-secondary" data-nav="messages">Message</button>
+                <button class="btn btn-secondary" data-message-user="${profile.id}">Message</button>
               `
           }
         </div>
@@ -631,17 +786,155 @@ function renderProfile() {
 }
 
 /* -------------------------
-   PLACEHOLDERS
+   MESSAGES UI
 ------------------------- */
-function renderMessagesPlaceholder() {
+function renderMessages() {
+  if (state.ui.messagesView === "chat" && state.ui.activeConvoUserId) {
+    return renderChatView();
+  }
+  return renderInboxView();
+}
+
+function renderInboxView() {
+  const convos = getConversations();
+
   return `
-    <section class="panel" style="padding:20px;">
-      <h2 class="section-title">Messages</h2>
-      <p class="text-muted">Messages will be activated in Phase 5.</p>
-    </section>
+    <div class="topbar">
+      <div>
+        <span class="page-kicker">Messages</span>
+        <h1 class="page-title">Inbox</h1>
+        <p class="page-subtitle">Premium creator conversations</p>
+      </div>
+    </div>
+
+    <div class="messages-shell" style="margin-top:18px;">
+      <section class="inbox-panel">
+        <div class="inbox-head">
+          <div class="inbox-head-title">
+            <h3>Conversations</h3>
+            <p>${convos.length} active chats</p>
+          </div>
+        </div>
+
+        ${
+          convos.length
+            ? `<div class="inbox-list">${convos.map(renderConversationRow).join("")}</div>`
+            : `
+              <div class="inbox-empty">
+                <div class="inbox-empty-icon">💬</div>
+                <h3>Your inbox is quiet</h3>
+                <p>Start a conversation from a creator profile to build stronger engagement.</p>
+              </div>
+            `
+        }
+      </section>
+
+      <section class="chat-panel">
+        <div class="inbox-empty">
+          <div class="inbox-empty-icon">✉️</div>
+          <h3>Select a conversation</h3>
+          <p>Choose a creator or user from the inbox to open the chat thread.</p>
+        </div>
+      </section>
+    </div>
   `;
 }
 
+function renderConversationRow(convo) {
+  const user = userById(convo.userId);
+  const unread = unreadCountForUser(convo.userId);
+
+  return `
+    <div class="convo-row ${state.ui.activeConvoUserId === convo.userId ? "active" : ""}" data-open-chat="${convo.userId}">
+      ${renderAvatar(user, "avatar-md")}
+      <div class="convo-body">
+        <div class="convo-top">
+          <span class="convo-name">${user.displayName}</span>
+          <span class="convo-time">${formatRelative(convo.lastMessage.createdAt)}</span>
+        </div>
+        <div class="convo-preview">${convo.lastMessage.text}</div>
+        <div class="convo-meta">
+          <span class="convo-badge">@${user.username}</span>
+          ${unread > 0 ? `<span class="convo-unread">${unread}</span>` : ""}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderChatView() {
+  const user = userById(state.ui.activeConvoUserId);
+  const thread = getThread(user.id);
+
+  return `
+    <div class="topbar">
+      <div>
+        <span class="page-kicker">Messages</span>
+        <h1 class="page-title">Chat</h1>
+        <p class="page-subtitle">Private thread with @${user.username}</p>
+      </div>
+    </div>
+
+    <div class="messages-shell" style="margin-top:18px;">
+      <section class="inbox-panel">
+        <div class="inbox-head">
+          <div class="inbox-head-title">
+            <h3>Conversations</h3>
+            <p>${getConversations().length} active chats</p>
+          </div>
+        </div>
+        <div class="inbox-list">
+          ${getConversations().map(renderConversationRow).join("")}
+        </div>
+      </section>
+
+      <section class="chat-panel">
+        <div class="chat-topbar">
+          <button class="icon-btn" id="backToInboxBtn">←</button>
+          <div class="chat-header-id">
+            ${renderAvatar(user, "avatar-sm")}
+            <div>
+              <div class="chat-header-name">${user.displayName}</div>
+              <div class="chat-header-handle">@${user.username}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+          ${thread.length ? thread.map(renderBubble).join("") : `<div class="chat-day-label">Start the conversation</div>`}
+        </div>
+
+        <div class="chat-input-bar">
+          <form id="chatForm">
+            <div class="chat-input-row">
+              <textarea class="chat-textarea" id="chatTextarea" placeholder="Write a message..."></textarea>
+              <button class="chat-send-btn" type="submit">➤</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderBubble(message) {
+  const mine = message.fromUserId === state.sessionUserId;
+  const sender = userById(message.fromUserId);
+
+  return `
+    <div class="bubble-row ${mine ? "bubble-row-mine" : "bubble-row-theirs"}">
+      ${mine ? "" : renderAvatar(sender, "avatar-xs")}
+      <div class="bubble ${mine ? "bubble-mine" : "bubble-theirs"}">
+        <p class="bubble-text">${message.text}</p>
+        <span class="bubble-time">${formatChatTime(message.createdAt)}</span>
+      </div>
+    </div>
+  `;
+}
+
+/* -------------------------
+   PLACEHOLDERS
+------------------------- */
 function renderWalletPlaceholder() {
   return `
     <section class="panel" style="padding:20px;">
@@ -694,6 +987,14 @@ function bindEvents() {
     btn.onclick = () => toggleFollow(btn.dataset.follow);
   });
 
+  document.querySelectorAll("[data-message-user]").forEach(btn => {
+    btn.onclick = () => openChat(btn.dataset.messageUser);
+  });
+
+  document.querySelectorAll("[data-open-chat]").forEach(btn => {
+    btn.onclick = () => openChat(btn.dataset.openChat);
+  });
+
   const searchInput = document.getElementById("searchInput");
   if (searchInput) {
     searchInput.oninput = e => {
@@ -705,5 +1006,20 @@ function bindEvents() {
   const themeToggleBtn = document.getElementById("themeToggleBtn");
   if (themeToggleBtn) {
     themeToggleBtn.onclick = toggleTheme;
+  }
+
+  const backToInboxBtn = document.getElementById("backToInboxBtn");
+  if (backToInboxBtn) {
+    backToInboxBtn.onclick = goInbox;
+  }
+
+  const chatForm = document.getElementById("chatForm");
+  if (chatForm) {
+    chatForm.onsubmit = e => {
+      e.preventDefault();
+      const textarea = document.getElementById("chatTextarea");
+      if (!textarea) return;
+      sendMessage(state.ui.activeConvoUserId, textarea.value);
+    };
   }
 }
