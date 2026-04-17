@@ -1,33 +1,33 @@
 /* =========================================================
-   EARNX — SCRIPT.JS — PHASE 1
-   Global State + Theme + Navigation + Utilities + Persistence
+   EARNX — SCRIPT.JS — PHASE 1 + PHASE 2
+   Global State + Theme + Navigation + Feed Logic
    ========================================================= */
 
 /* -------------------------
    1) Initial UI / app state
 ------------------------- */
 const initialUI = {
-  authView: "login",          // login | signup | forgot
-  appView: "home",            // home | discover | messages | profile | wallet | settings
+  authView: "login",
+  appView: "home",
   discoverTab: "global",
   discoverCategory: "all",
   profileUserId: null,
   notice: null,
   searchQuery: "",
-  theme: "dark",              // dark | light
-  messagesView: "inbox",      // inbox | chat
+  theme: "dark",
+  messagesView: "inbox",
   activeConvoUserId: null,
-  feedFilter: "following"     // following | trending | premium
+  feedFilter: "following" // following | trending | premium
 };
 
 const initialState = {
-  sessionUserId: "u1",        // demo session for now
+  sessionUserId: "u1",
   ui: loadUIState(),
   users: getMockUsers(),
   posts: getMockPosts(),
   follows: getMockFollows(),
   messages: getMockMessages(),
-  localLikes: {},             // postId -> true/false
+  localLikes: {},
   wallet: getMockWallet(),
   settings: getMockSettings()
 };
@@ -135,6 +135,15 @@ function getMockPosts() {
       likesCount: 211,
       commentsCount: 16,
       createdAt: Date.now() - 1000 * 60 * 60 * 14
+    },
+    {
+      id: "p4",
+      userId: "u1",
+      content: "EARNX keeps evolving. Cleaner UI, stronger momentum, better creator positioning.",
+      monetized: false,
+      likesCount: 67,
+      commentsCount: 4,
+      createdAt: Date.now() - 1000 * 60 * 60 * 18
     }
   ];
 }
@@ -310,6 +319,12 @@ function setDiscoverCategory(category) {
   render();
 }
 
+function setFeedFilter(filter) {
+  state.ui.feedFilter = filter;
+  saveUIState();
+  render();
+}
+
 /* -------------------------
    7) Utility helpers
 ------------------------- */
@@ -439,14 +454,56 @@ function iconSvg(icon) {
     profile: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>`,
     wallet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v10H3z"/><path d="M16 12h5"/><path d="M3 7l3-3h12l3 3"/></svg>`,
     settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-.4-1.1 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2.8a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.1-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V2.8a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 .4 1.1 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.26.3.44.64.52 1.03.08.39.1.79.08 1.17-.02.38-.08.76-.19 1.13-.1.37-.24.73-.41 1.07z"/></svg>`,
-    refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>`
+    refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>`,
+    heart: `<svg viewBox="0 0 24 24"><path d="M12 21.6C6.4 16.1 1 11.3 1 7.2 1 3.4 4.1 2 6.3 2c1.3 0 4.1.5 5.7 4.5C13.6 2.5 16.4 2 17.7 2 20.2 2 23 3.6 23 7.2c0 4.1-5.1 8.6-11 14.4z"/></svg>`,
+    comment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+    send: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`
   };
 
   return icons[icon] || "";
 }
 
 /* -------------------------
-   10) Base render
+   10) Feed helpers
+------------------------- */
+function filteredFeedPosts() {
+  const me = currentUser();
+  let posts = [...state.posts].sort((a, b) => b.createdAt - a.createdAt);
+
+  if (state.ui.feedFilter === "following" && me) {
+    const followingIds = state.follows
+      .filter(f => f.followerId === me.id)
+      .map(f => f.followingId);
+
+    posts = posts.filter(post => followingIds.includes(post.userId) || post.userId === me.id);
+  }
+
+  if (state.ui.feedFilter === "premium") {
+    posts = posts.filter(post => post.monetized);
+  }
+
+  if (state.ui.feedFilter === "trending") {
+    posts = posts.sort((a, b) => {
+      const aScore = (a.likesCount || 0) + (a.commentsCount || 0) * 2;
+      const bScore = (b.likesCount || 0) + (b.commentsCount || 0) * 2;
+      return bScore - aScore;
+    });
+  }
+
+  return posts;
+}
+
+function isPostLiked(postId) {
+  return !!state.localLikes[postId];
+}
+
+function toggleLike(postId) {
+  state.localLikes[postId] = !state.localLikes[postId];
+  render();
+}
+
+/* -------------------------
+   11) Base render
 ------------------------- */
 function render() {
   const app = document.getElementById("app");
@@ -471,7 +528,7 @@ function render() {
 }
 
 /* -------------------------
-   11) Sidebar / topbar / nav
+   12) Sidebar / topbar / nav
 ------------------------- */
 function renderSidebar(me) {
   return `
@@ -584,12 +641,12 @@ function getPageTitle() {
 }
 
 /* -------------------------
-   12) Placeholder views
+   13) Page renderers
 ------------------------- */
 function renderCurrentPage() {
   switch (state.ui.appView) {
     case "home":
-      return renderHomePlaceholder();
+      return renderHomePage();
     case "discover":
       return renderDiscoverPlaceholder();
     case "messages":
@@ -601,21 +658,96 @@ function renderCurrentPage() {
     case "settings":
       return renderSettingsPlaceholder();
     default:
-      return renderHomePlaceholder();
+      return renderHomePage();
   }
 }
 
-function renderHomePlaceholder() {
+function renderHomePage() {
+  const posts = filteredFeedPosts();
+
   return `
-    <section class="panel" style="padding: 20px;">
+    <section class="page-section">
       <div class="section-head">
-        <h2 class="section-title">Feed foundation ready</h2>
-        <span class="section-meta">Phase 2 next</span>
+        <h2 class="section-title">Creator feed</h2>
+        <span class="section-meta">${posts.length} posts</span>
       </div>
-      <p class="text-muted">
-        Home feed logic will be connected in the next JS phase.
-      </p>
+
+      <div class="tabs">
+        <button class="tab ${state.ui.feedFilter === "following" ? "active" : ""}" data-feed-filter="following">Following</button>
+        <button class="tab ${state.ui.feedFilter === "trending" ? "active" : ""}" data-feed-filter="trending">Trending</button>
+        <button class="tab ${state.ui.feedFilter === "premium" ? "active" : ""}" data-feed-filter="premium">Premium</button>
+      </div>
     </section>
+
+    <section class="feed-list">
+      ${posts.length ? posts.map(renderPostCard).join("") : renderFeedEmpty()}
+    </section>
+  `;
+}
+
+function renderPostCard(post) {
+  const me = currentUser();
+  const user = state.users.find(u => u.id === post.userId);
+  if (!user) return "";
+
+  const badge = getRankBadge(user.id, "global", me?.country || "");
+  const ambassador = isAmbassador(user.id, me?.country || "");
+  const liked = isPostLiked(post.id);
+  const likeCount = (post.likesCount || 0) + (liked ? 1 : 0);
+  const isPremium = !!post.monetized;
+
+  return `
+    <article class="post-card">
+      <div class="post-head clickable" data-open-profile="${user.id}">
+        ${renderAvatar(user)}
+        <div class="name-block">
+          <div class="name-line">
+            <h4>${escapeHtml(user.displayName || user.name || "")}</h4>
+            ${badge ? `<span class="badge ${escapeHtml(badge.className)}">${escapeHtml(badge.label)}</span>` : ""}
+            ${ambassador ? `<span class="badge badge-ambassador">Ambassador</span>` : ""}
+            ${isPremium ? `<span class="badge badge-premium">Premium</span>` : ""}
+          </div>
+          <div class="handle">@${escapeHtml(user.username)} · ${escapeHtml(user.country)} · ${escapeHtml(formatDate(post.createdAt))}</div>
+        </div>
+      </div>
+
+      <div class="post-content">
+        ${escapeHtml(post.content || "")}
+      </div>
+
+      <div class="post-media">
+        <div class="media" style="min-height:220px; display:grid; place-items:center;">
+          Media Preview
+        </div>
+      </div>
+
+      <div class="post-footer">
+        <div class="post-reactions">
+          <button class="reaction-btn ${liked ? "reaction-liked" : ""}" data-like-post="${post.id}">
+            ${iconSvg("heart")}
+            ${likeCount > 0 ? `<span>${likeCount}</span>` : ""}
+          </button>
+
+          <button class="reaction-btn" data-comment-post="${post.id}">
+            ${iconSvg("comment")}
+            ${post.commentsCount > 0 ? `<span>${post.commentsCount}</span>` : ""}
+          </button>
+        </div>
+
+        <button class="reaction-btn" data-message-user-direct="${user.id}">
+          ${iconSvg("send")}
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function renderFeedEmpty() {
+  return `
+    <div class="feed-empty">
+      <h3>No posts found</h3>
+      <p>Try a different feed filter or follow more creators.</p>
+    </div>
   `;
 }
 
@@ -697,7 +829,7 @@ function renderSettingsPlaceholder() {
 }
 
 /* -------------------------
-   13) Events
+   14) Events
 ------------------------- */
 function bindGlobalEvents() {
   document.addEventListener("error", event => {
@@ -718,6 +850,40 @@ function bindRenderEvents() {
     btn.addEventListener("click", () => {
       const view = btn.dataset.nav;
       setAppView(view);
+    });
+  });
+
+  document.querySelectorAll("[data-feed-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      setFeedFilter(btn.dataset.feedFilter);
+    });
+  });
+
+  document.querySelectorAll("[data-open-profile]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      setProfileView(btn.dataset.openProfile);
+    });
+  });
+
+  document.querySelectorAll("[data-like-post]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      toggleLike(btn.dataset.likePost);
+    });
+  });
+
+  document.querySelectorAll("[data-comment-post]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      setNotice("Comments will be connected in a later phase.");
+    });
+  });
+
+  document.querySelectorAll("[data-message-user-direct]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.ui.appView = "messages";
+      state.ui.messagesView = "chat";
+      state.ui.activeConvoUserId = btn.dataset.messageUserDirect;
+      saveUIState();
+      render();
     });
   });
 
