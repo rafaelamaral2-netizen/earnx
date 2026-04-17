@@ -736,3 +736,227 @@ body.dark-theme .bottom-nav {
     width: 100%;
   }
 }
+/* =========================================================
+   EARNX — PHASE 2
+   Feed + Post Cards + Interactions
+   ========================================================= */
+
+/* -------------------------
+   Feed container
+------------------------- */
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* -------------------------
+   Post card
+------------------------- */
+.post-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px 18px 16px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* -------------------------
+   Post header
+------------------------- */
+.post-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.post-head.clickable {
+  cursor: pointer;
+}
+
+.post-head.clickable:hover .avatar {
+  border-color: var(--accent);
+}
+
+.name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.name-line h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.handle {
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+/* -------------------------
+   Post content
+------------------------- */
+.post-content {
+  margin-top: 14px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* -------------------------
+   Media preview
+------------------------- */
+.post-media {
+  margin-top: 14px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+}
+
+.post-media img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* -------------------------
+   Footer / interactions
+------------------------- */
+.post-footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.post-reactions {
+  display: flex;
+  gap: 8px;
+}
+
+/* -------------------------
+   Reaction buttons
+------------------------- */
+.reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  color: var(--text-soft);
+  font-size: 13px;
+  transition: all 0.18s ease;
+}
+
+.reaction-btn:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.reaction-btn:active {
+  transform: scale(0.94);
+}
+
+.reaction-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* -------------------------
+   Like state
+------------------------- */
+.reaction-liked {
+  color: #ff5c74;
+  background: rgba(255, 92, 116, 0.12);
+  border-color: rgba(255, 92, 116, 0.2);
+}
+
+.reaction-liked svg {
+  fill: #ff5c74;
+}
+
+/* -------------------------
+   Premium badge
+------------------------- */
+.badge-premium {
+  background: rgba(255, 204, 102, 0.14);
+  color: #c9931a;
+  border-color: rgba(201, 147, 26, 0.22);
+}
+
+/* -------------------------
+   Ambassador badge
+------------------------- */
+.badge.ambassador {
+  background: rgba(0, 200, 83, 0.14);
+  color: var(--accent);
+  border-color: rgba(0, 200, 83, 0.22);
+}
+
+/* -------------------------
+   Chips (stats / info)
+------------------------- */
+.post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* -------------------------
+   Empty feed state
+------------------------- */
+.feed-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-soft);
+}
+
+.feed-empty h3 {
+  margin-bottom: 6px;
+}
+
+/* -------------------------
+   Responsive feed
+------------------------- */
+@media (max-width: 640px) {
+  .post-card {
+    padding: 14px;
+  }
+
+  .post-content {
+    font-size: 14px;
+  }
+
+  .reaction-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
